@@ -14,6 +14,11 @@ class mathematicalGrammarVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by mathematicalGrammarParser#expression.
+    def visitExpression(self, ctx:mathematicalGrammarParser.ExpressionContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by mathematicalGrammarParser#arithmetic_expression.
     def visitArithmetic_expression(self, ctx:mathematicalGrammarParser.Arithmetic_expressionContext):
         return self.visitChildren(ctx)

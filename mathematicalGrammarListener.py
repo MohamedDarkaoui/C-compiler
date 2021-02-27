@@ -17,6 +17,15 @@ class mathematicalGrammarListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by mathematicalGrammarParser#expression.
+    def enterExpression(self, ctx:mathematicalGrammarParser.ExpressionContext):
+        pass
+
+    # Exit a parse tree produced by mathematicalGrammarParser#expression.
+    def exitExpression(self, ctx:mathematicalGrammarParser.ExpressionContext):
+        pass
+
+
     # Enter a parse tree produced by mathematicalGrammarParser#arithmetic_expression.
     def enterArithmetic_expression(self, ctx:mathematicalGrammarParser.Arithmetic_expressionContext):
         pass

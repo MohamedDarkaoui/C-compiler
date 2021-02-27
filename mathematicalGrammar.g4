@@ -1,6 +1,7 @@
 grammar mathematicalGrammar;
 
-startRule: arithmetic_expression SEMICOLON | conditional_expression SEMICOLON | logical_expression SEMICOLON;
+startRule: expression*;
+
 PLUS: '+';
 MINUS: '-';
 TIMES: '*';
@@ -24,6 +25,7 @@ SEMICOLON: ';';
 INT: [0-9]+;
 WS: [ \n\t\r]+ -> skip;
 
+expression: arithmetic_expression SEMICOLON | conditional_expression SEMICOLON | logical_expression SEMICOLON;
 
 arithmetic_expression :
     INT
