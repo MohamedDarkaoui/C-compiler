@@ -1,6 +1,7 @@
 grammar mathematicalGrammar;
 
-startRule: expression*;
+startRule: expression* EOF;
+
 
 PLUS: '+';
 MINUS: '-';
@@ -22,13 +23,15 @@ NOT: '!';
 LP: '(';
 RP: ')';
 SEMICOLON: ';';
-INT: [0-9]+;
+signed_int: (PLUS | MINUS |) UNSIGNED_INT;
+UNSIGNED_INT: [0-9]+;
 WS: [ \n\t\r]+ -> skip;
+
 
 expression: arithmetic_expression SEMICOLON | conditional_expression SEMICOLON | logical_expression SEMICOLON;
 
 arithmetic_expression :
-    INT
+    signed_int
     | arithmetic_expression (PLUS | MINUS) arithmetic_expression
     | arithmetic_expression (TIMES | DIV) arithmetic_expression
     | arithmetic_expression MODULO arithmetic_expression
@@ -47,5 +50,3 @@ logical_expression :
     | logical_expression AND logical_expression
     | NOT logical_expression
     | LP logical_expression RP;
-
-
