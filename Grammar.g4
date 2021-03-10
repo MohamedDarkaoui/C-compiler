@@ -32,10 +32,11 @@ expression: arithmetic_expression SEMICOLON | conditional_expression SEMICOLON |
 
 arithmetic_expression :
     signed_int
-    | arithmetic_expression (PLUS | MINUS) arithmetic_expression
+    | LP arithmetic_expression RP
     | arithmetic_expression (TIMES | DIV) arithmetic_expression
-    | arithmetic_expression MODULO arithmetic_expression
-    | LP arithmetic_expression RP;
+    | arithmetic_expression (PLUS|MINUS) arithmetic_expression
+    | arithmetic_expression MODULO arithmetic_expression;
+
 
 conditional_expression :
     arithmetic_expression
@@ -50,3 +51,4 @@ logical_expression :
     | logical_expression AND logical_expression
     | NOT logical_expression
     | LP logical_expression RP;
+
