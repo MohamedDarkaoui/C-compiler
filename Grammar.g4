@@ -1,4 +1,4 @@
-grammar mathematicalGrammar;
+grammar Grammar;
 
 startRule: expression* EOF;
 
