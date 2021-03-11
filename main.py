@@ -3,7 +3,7 @@ from antlr4 import *
 from GrammarLexer import GrammarLexer
 from GrammarParser import GrammarParser
 from listener import Listener
-from cst import cst
+from ast import *
  
 def main(argv):
     input_stream = FileStream(argv[1])
@@ -14,9 +14,9 @@ def main(argv):
     listener = Listener()
     walker = ParseTreeWalker()
     walker.walk(listener, tree)
-
-    #c = cst(tree)
-    #print(c.dot())
+    astcreator = ASTCreator(tree, listener.queue)
+    ast = astcreator.generateTree()
+    ast.dot("treeGraph")
 
 
 if __name__ == '__main__':

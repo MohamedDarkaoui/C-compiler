@@ -40,15 +40,16 @@ arithmetic_expression :
 
 conditional_expression :
     arithmetic_expression
+    | LP conditional_expression RP
     | conditional_expression (GT | ST) conditional_expression
     | conditional_expression (GET | SET) conditional_expression
-    | conditional_expression (EQ | NEQ) conditional_expression
-    | LP conditional_expression RP;
+    | conditional_expression (EQ | NEQ) conditional_expression;
+    
 
 logical_expression :
     conditional_expression
+    | LP logical_expression RP
     | logical_expression OR logical_expression
     | logical_expression AND logical_expression
-    | NOT logical_expression
-    | LP logical_expression RP;
+    | NOT logical_expression;
 
