@@ -18,5 +18,6 @@ def main(argv):
     ast = astcreator.generateTree()
     ast.dot("treeGraph")
 
+
 if __name__ == '__main__':
     main(sys.argv)

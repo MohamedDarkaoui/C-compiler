@@ -1,6 +1,7 @@
 grammar Grammar;
 
-startRule: expression* EOF;
+startRule: statement* EOF;
+
 
 
 PLUS: '+';
@@ -8,48 +9,40 @@ MINUS: '-';
 TIMES: '*';
 DIV: '/';
 MODULO: '%';
-
-GT: '>';
-ST: '<';
-GET: '>=';
-SET: '<=';
-EQ: '==';
-NEQ: '!=';
-
-OR: '||';
-AND: '&&';
-NOT: '!';
-
 LP: '(';
 RP: ')';
+ASSIGN: '=';
 SEMICOLON: ';';
+POINT: '.';
+AMPERSAND: '&';
 signed_int: (PLUS | MINUS |) UNSIGNED_INT;
 UNSIGNED_INT: [0-9]+;
+float_number: (PLUS | MINUS |) UNSIGNED_INT POINT UNSIGNED_INT;
+DIGIT: [0-9];
 WS: [ \n\t\r]+ -> skip;
+CONST: 'const';
+UNDERSCORE: '_';
+INT: 'int';
+CHAR: 'char';
+FLOAT: 'float';
+types: INT | CHAR | FLOAT;
+ID: [_a-zA-Z][_a-zA-Z0-9]*;
+variable: ID;
+CHARACTER: '\'' . '\'';
+character: CHARACTER;
+
+statement: definition | declaration | assignment;
+declaration: types (TIMES|AMPERSAND)? variable SEMICOLON;
+definition: CONST? types (TIMES|AMPERSAND)? variable ASSIGN  expression SEMICOLON;
+assignment: variable ASSIGN (TIMES|AMPERSAND)? expression SEMICOLON;
 
 
-expression: arithmetic_expression SEMICOLON | conditional_expression SEMICOLON | logical_expression SEMICOLON;
-
+expression: arithmetic_expression | character;
 arithmetic_expression :
     signed_int
+    | (TIMES|AMPERSAND)?variable
+    | float_number
     | LP arithmetic_expression RP
     | arithmetic_expression (TIMES | DIV) arithmetic_expression
     | arithmetic_expression (PLUS|MINUS) arithmetic_expression
     | arithmetic_expression MODULO arithmetic_expression;
-
-
-conditional_expression :
-    arithmetic_expression
-    | LP conditional_expression RP
-    | conditional_expression (GT | ST) conditional_expression
-    | conditional_expression (GET | SET) conditional_expression
-    | conditional_expression (EQ | NEQ) conditional_expression;
-    
-
-logical_expression :
-    conditional_expression
-    | LP logical_expression RP
-    | logical_expression OR logical_expression
-    | logical_expression AND logical_expression
-    | NOT logical_expression;
-

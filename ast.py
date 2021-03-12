@@ -42,19 +42,30 @@ class AST:
         return dot
 
 
+class variable:
+    def __init__(self, Const, Init, Name, Type):
+        self.const = Const
+        self.init = Init
+        self.name = Name
+        self.type = Type
+
+
 class ASTCreator:
     def __init__(self, tree, queue):
         self.tree = tree
         self.currentTreeNode = self.tree
         self.queue = queue
         self.queue_number = 0
+        self.scope = []
+
 
     def generateTree(self):
         root = AST_Node(self.queue[0][0], self.queue[0][1])
         self.queue_number+=1
         self.generateTreeBody(root)
-        for i in range(3):
+        for i in range(4):
             self.fixNode(root, i)
+        self.semanticsAnalizer(root)
         return AST(root)
 
     def generateTreeBody(self, currentNode):
@@ -70,14 +81,22 @@ class ASTCreator:
                 self.generateTreeBody(newChild)
 
     def fixNode(self, currentNode, fixNumber):
+        #FIX USELESS NODES
         if fixNumber == 0:
-            if currentNode.value == '(' or currentNode.value == ')' or currentNode.value == ';':
-                currentNode.parent.children.remove(currentNode)
+            uselessNodes = ['(', ')', ';', '=']
+            for child in currentNode.children:
+                if child.value in uselessNodes:
+                    currentNode.children.remove(child)
+
+        #FIX A_EXPR -> A_EXPR        
         elif fixNumber == 1:
-            if currentNode.value == 'arithmetic_expression' and currentNode.parent.value == 'arithmetic_expression' and len(currentNode.parent.children) == 1:
-                index = currentNode.parent.parent.children.index(currentNode.parent)
-                currentNode.parent = currentNode.parent.parent
-                currentNode.parent.children[index] = currentNode
+            if currentNode.value == 'A_EXP' and len(currentNode.children) == 1:
+                if currentNode.children[0].value == 'A_EXP':
+                    currentNode.children = currentNode.children[0].children
+                    for child in currentNode.children:
+                        child.parent = currentNode
+            
+        #FIX OPERATOR ALS ROOT
         elif fixNumber == 2:
             operators = ['+', '-', '/', '*', '%']
             if len(currentNode.children) == 3:
@@ -86,5 +105,61 @@ class ASTCreator:
                     currentNode.ctx = currentNode.children[1].ctx
                     del currentNode.children[1]
 
+        #FIX INTEGERS AND FLOATS
+        elif fixNumber == 3:
+            if currentNode.value == "INT" or currentNode.value == "FLOAT":
+                value = ""
+                for child in currentNode.children:
+                    value += child.value
+                currentNode.children = [currentNode.children[0]]
+                currentNode.children[0].value = value
+                currentNode.children[0].ctx = None
+
         for child in currentNode.children:
             self.fixNode(child, fixNumber)
+
+    def getScope(self):
+        """
+        for var in self.scope:
+            pass
+        """
+
+        return self.scope
+
+
+    def semanticsAnalizer(self, currentNode):
+        if currentNode.value == "DEC":
+            currentScope = self.getScope()
+            _type = ""
+            name = ""
+            for child in currentNode.children:
+                if child.value == "TYPE":
+                    _type = child.children[0].value
+                elif child.value == "VAR":
+                    name = child.children[0].value
+            
+            for var in currentScope:
+                if var.name == name:
+                    raise Exception("Variable " + name + " is already declared")
+
+            newVar = variable(False, False, name, _type)
+            self.scope.append(newVar)
+
+        elif currentNode.value == "DEF":
+            #CHECK VARIABLE DOESNT EXIST ALREADY IN THE SCOPE
+            #CHECK RVALUE HAS THE SAME TYPE AS THE TYPE OF THE VARIABLE
+            #CHECK Use of an undefined or uninitialized variable in the RVALUE of the assignment
+            pass
+
+        elif currentNode.value == "ASSIGN":
+            #CHECK VARIABLE ALREADY EXISTS IN THE SCOPE
+            #CHECK RVALUE HAS THE SAME TYPE AS THE TYPE OF THE VARIABLE
+            #CHECK Use of an undefined or uninitialized variable in the RVALUE of the assignment
+            #CHECK VARIABLE IS NOT CONST
+            pass
+
+        else:
+            for child in currentNode.children:
+                self.semanticsAnalizer(child)
+    
+    
