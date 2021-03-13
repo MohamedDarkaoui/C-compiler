@@ -3,7 +3,6 @@ grammar Grammar;
 startRule: statement* EOF;
 
 
-
 PLUS: '+';
 MINUS: '-';
 TIMES: '*';
@@ -34,13 +33,13 @@ character: CHARACTER;
 statement: definition | declaration | assignment;
 declaration: types (TIMES|AMPERSAND)? variable SEMICOLON;
 definition: CONST? types (TIMES|AMPERSAND)? variable ASSIGN  expression SEMICOLON;
-assignment: variable ASSIGN (TIMES|AMPERSAND)? expression SEMICOLON;
+assignment: (TIMES|AMPERSAND)? variable ASSIGN expression SEMICOLON;
 
 
 expression: arithmetic_expression | character;
-arithmetic_expression :
+arithmetic_expression:
     signed_int
-    | (TIMES|AMPERSAND)?variable
+    | (TIMES|AMPERSAND)? variable
     | float_number
     | LP arithmetic_expression RP
     | arithmetic_expression (TIMES | DIV) arithmetic_expression

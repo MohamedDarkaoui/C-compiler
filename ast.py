@@ -40,15 +40,15 @@ class AST:
             dot += self.generateDot(child)
     
         return dot
-
+    
 
 class variable:
-    def __init__(self, Const, Init, Name, Type):
+    def __init__(self, Const, Init, Name, Type, Pointer=False):
         self.const = Const
         self.init = Init
         self.name = Name
         self.type = Type
-
+        self.pointer = Pointer
 
 class ASTCreator:
     def __init__(self, tree, queue):
@@ -66,6 +66,7 @@ class ASTCreator:
         for i in range(4):
             self.fixNode(root, i)
         self.semanticsAnalizer(root)
+        self.constantFolding(root)
         return AST(root)
 
     def generateTreeBody(self, currentNode):
@@ -132,55 +133,92 @@ class ASTCreator:
         return returnlist
 
 
+
+    def constantFolding(self, currentNode):
+        operators = ['+', '-', '/', '*', '%']
+        if currentNode.value in operators:
+            if not self.getAllVariables(currentNode.children[0]) and not self.getAllVariables(currentNode.children[1]):
+                result = 0
+                result1 = float(self.constantFolding(currentNode.children[0]))
+                result2 = float(self.constantFolding(currentNode.children[1]))
+                if currentNode.value == '+':
+                    result = result1 + result2
+                elif currentNode.value == '-':
+                    result = result1 - result2
+                elif currentNode.value == '/':
+                    result = result1 / result2
+                elif currentNode.value == '*':
+                    result = result1 * result2  
+                else:
+                    result = result1 % result2
+                currentNode.value = "A_EXP"
+                currentNode.children = [AST_Node('FLOAT', currentNode)]
+                currentNode.children[0].children = [AST_Node(str(result), currentNode.children[0])]
+                return result   
+            else:
+                self.constantFolding(currentNode.children[0])
+                self.constantFolding(currentNode.children[1])
+        elif currentNode.value == 'A_EXP':
+            return currentNode.children[0].children[0].value
+        else:
+            for child in currentNode.children:
+                self.constantFolding(child)
+
+
     def semanticsAnalizer(self, currentNode):
         if currentNode.value == "DEC":
-            currentScope = self.getScope(self.scope)
-            _type = ""
-            name = ""
-            for child in currentNode.children:
-                if child.value == "TYPE":
-                    _type = child.children[0].value
-                elif child.value == "VAR":
-                    name = child.children[0].value
-            
-            for var in currentScope:
-                if var.name == name:
-                    raise Exception("Variable " + name + " is already declared")
-
-            newVar = variable(False, False, name, _type)
-            self.scope.append(newVar)
+            #CHECK VARIABLE DOESNT EXIST ALREADY IN THE SCOPE
+            self.declaration_analyser(currentNode)
 
         elif currentNode.value == "DEF":
             #CHECK VARIABLE DOESNT EXIST ALREADY IN THE SCOPE
             #CHECK RVALUE HAS THE SAME TYPE AS THE TYPE OF THE VARIABLE
             #CHECK Use of an undefined or uninitialized variable in the RVALUE of the assignment
             self.definition_analyser(currentNode)
+            
 
         elif currentNode.value == "ASSIGN":
             #CHECK VARIABLE ALREADY EXISTS IN THE SCOPE
             #CHECK RVALUE HAS THE SAME TYPE AS THE TYPE OF THE VARIABLE
             #CHECK Use of an undefined or uninitialized variable in the RVALUE of the assignment
             #CHECK VARIABLE IS NOT CONST
-            pass
+            self.assignment_analyser(currentNode)
 
         else:
             for child in currentNode.children:
                 self.semanticsAnalizer(child)
 
+    def declaration_analyser(self, node):
+        """
+        analyses the declarion statements and throws semantic exceptions when needed
+        """
+        currentScope = self.getScope(self.scope)
+        _type = ""
+        name = ""
+        for child in node.children:
+            if child.value == "TYPE":
+                _type = child.children[0].value
+            elif child.value == "VAR":
+                name = child.children[0].value
+        
+        for var in currentScope:
+            if var.name == name:
+                raise Exception("Variable " + name + " is already declared")
+
+        newVar = variable(False, False, name, _type)
+        self.scope.append(newVar)
+
+
+
     def definition_analyser(self, node):
         """
         analyses the definition statements and throws semantic exceptions when needed
         """
-        
-        types = { # move to self.types or give as a parameter?
-            'int' : 'INT',
-            'float' : 'FLOAT',
-            'char' : 'CHAR'
-        }
 
-        scope = self.getScope(self.scope)
         _type, name, cst = '','', False
-        
+        currentScope = self.getScope(self.scope)
+
+        #GET INFO OVER VARIABLE
         for child in node.children:
             if child.value == 'TYPE':
                 _type = child.children[0].value
@@ -189,32 +227,89 @@ class ASTCreator:
             elif child.value == 'const':
                 cst = True
 
+        #GET RIGHTVALUE
         exp = node.children[-1]
-        # int a = b
-        if exp.children[0].children[0].value == 'VAR':
-            variable_name = exp.children[0].children[0].children[0].value
-            var = None
-            for element in scope:
-                if element.name == variable_name:
-                    var = element
-            # b is niet gedefinieerd in de scope
-            if var == None:
-                raise Exception ('Variable ' + variable_name + ' is not defined')
-            # a en b hebben niet dezelfde type
-            elif var.type != _type:
-                raise Exception ('Variable ' + name + ' does not have type ' + var.type)
 
-        # int a = 5
-        else:
-            #voor int, float is er een A_EXP node meer dan bij char 
-            if not types[_type] == exp.children[0].value and not types[_type] == exp.children[0].children[0].value:
-                raise Exception("Variable " + name + " not matching type " + _type)
-
-        for var in scope:
-                if var.name == name:
+        #CHECK IF VARIABLE DOESNT EXISTS IN THE SCOPE
+        for var in currentScope:
+            if var.name == name:
                     raise Exception("Variable " + name + " is already declared")
-    
-        self.scope.append(variable(cst, False, name, _type))
 
-    
-    
+        #CHECK RVALUE HAS THE SAME TYPE AS THE TYPE OF THE VARIABLE
+        if (_type == "int" or _type == "float") and exp.children[0].value == "CHAR":
+            raise Exception("Variable " + name + " is of type " + _type + " but his rvalue is of type char.")
+        elif (_type == "char") and not exp.children[0].value == "CHAR":
+            raise Exception("Variable " + name + " is of type " + _type + " but his rvalue is of type int or float.")
+        
+        #CHECK Use of an undefined or uninitialized variable in the RVALUE of the assignment
+        usedVariables =  self.getAllVariables(exp)
+        for var in usedVariables:
+            checkDef = False
+            for var2 in currentScope:
+                if var == var2.name:
+                    checkDef = True
+                    #CHECK INITIALIZED
+                    if not var2.init:
+                        raise Exception("Variable " + var + " is not initialized.")
+            #CHECK DEFINED        
+            if not checkDef:
+                raise Exception("Variable " + var + " is not defined.")
+
+        self.scope.append(variable(cst, True, name, _type))
+
+    def assignment_analyser(self, node):
+        currentScope = self.getScope(self.scope)
+        name = ""
+        _type = ""
+        for child in node.children:
+            if child.value == 'VAR':
+                name = child.children[0].value
+        exp = node.children[-1]
+
+        #FIND VARIABLE IN SCOPE AND CHECK THAT IT IS NOT A CONST VARIABLE
+        check = False
+        for var in currentScope:
+            if var.name == name:
+                _type = var.type
+                check = True
+                #CHECK THE VARIABLE IS NOT CONST
+                if var.const:
+                    raise Exception("Variable " + name + " is constant so its value cannot be changed.")
+                #SET THE VARIABLE TO INITIALIZED IF IT ISNT
+                if not var.init:
+                    var.init = True
+                break
+        #CHECK VARIABLE EXISTS IN THE SCOPE
+        if not check:
+            raise Exception("Variable " + name + " doesnt exist in the scope.")
+
+
+        #CHECK RVALUE HAS THE SAME TYPE AS THE TYPE OF THE VARIABLE
+        if (_type == "int" or _type == "float") and exp.children[0].value == "CHAR":
+            raise Exception("Variable " + name + " is of type " + _type + " but his rvalue is of type char.")
+        elif (_type == "char") and not exp.children[0].value == "CHAR":
+            raise Exception("Variable " + name + " is of type " + _type + " but his rvalue is of type int or float.")
+        
+        #CHECK Use of an undefined or uninitialized variable in the RVALUE of the assignment
+        usedVariables =  self.getAllVariables(exp)
+        for var in usedVariables:
+            checkDef = False
+            for var2 in currentScope:
+                if var == var2.name:
+                    checkDef = True
+                    #CHECK INITIALIZED
+                    if not var2.init:
+                        raise Exception("Variable " + var + " is not initialized.")
+            #CHECK DEFINED        
+            if not checkDef:
+                raise Exception("Variable " + var + " is not defined.")
+
+    #FUNCTION THAT RETURNS ALL VARIABLES USED IN A SUBTREE
+    def getAllVariables(self, currentNode):
+        variables = []
+        if currentNode.value == "VAR":
+            variables.append(currentNode.children[0].value)
+        else:
+            for child in currentNode.children:
+                variables += self.getAllVariables(child)
+        return variables

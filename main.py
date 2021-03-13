@@ -4,6 +4,7 @@ from GrammarLexer import GrammarLexer
 from GrammarParser import GrammarParser
 from listener import Listener
 from ast import *
+from llvm import LLVMGenerator
  
 def main(argv):
     input_stream = FileStream(argv[1])
@@ -17,6 +18,9 @@ def main(argv):
     astcreator = ASTCreator(tree, listener.queue)
     ast = astcreator.generateTree()
     ast.dot("treeGraph")
+    llvmgenerator = LLVMGenerator(ast)
+    llvmgenerator.toLLVM('llvm.txt')
+
 
 if __name__ == '__main__':
     main(sys.argv)
