@@ -118,18 +118,23 @@ class ASTCreator:
         for child in currentNode.children:
             self.fixNode(child, fixNumber)
 
-    def getScope(self):
+    def getScope(self, scopes):
         """
-        for var in self.scope:
-            pass
+        turns a nested list into one big list 
         """
+        returnlist = []
+        for item in scopes:
+            if not isinstance(item,list):
+                returnlist.append(item)
+            else:
+                returnlist += self.getScope(item)
 
-        return self.scope
+        return returnlist
 
 
     def semanticsAnalizer(self, currentNode):
         if currentNode.value == "DEC":
-            currentScope = self.getScope()
+            currentScope = self.getScope(self.scope)
             _type = ""
             name = ""
             for child in currentNode.children:
@@ -149,7 +154,7 @@ class ASTCreator:
             #CHECK VARIABLE DOESNT EXIST ALREADY IN THE SCOPE
             #CHECK RVALUE HAS THE SAME TYPE AS THE TYPE OF THE VARIABLE
             #CHECK Use of an undefined or uninitialized variable in the RVALUE of the assignment
-            pass
+            self.definition_analyser(currentNode)
 
         elif currentNode.value == "ASSIGN":
             #CHECK VARIABLE ALREADY EXISTS IN THE SCOPE
@@ -161,5 +166,55 @@ class ASTCreator:
         else:
             for child in currentNode.children:
                 self.semanticsAnalizer(child)
+
+    def definition_analyser(self, node):
+        """
+        analyses the definition statements and throws semantic exceptions when needed
+        """
+        
+        types = { # move to self.types or give as a parameter?
+            'int' : 'INT',
+            'float' : 'FLOAT',
+            'char' : 'CHAR'
+        }
+
+        scope = self.getScope(self.scope)
+        _type, name, cst = '','', False
+        
+        for child in node.children:
+            if child.value == 'TYPE':
+                _type = child.children[0].value
+            elif child.value == 'VAR':
+                name = child.children[0].value
+            elif child.value == 'const':
+                cst = True
+
+        exp = node.children[-1]
+        # int a = b
+        if exp.children[0].children[0].value == 'VAR':
+            variable_name = exp.children[0].children[0].children[0].value
+            var = None
+            for element in scope:
+                if element.name == variable_name:
+                    var = element
+            # b is niet gedefinieerd in de scope
+            if var == None:
+                raise Exception ('Variable ' + variable_name + ' is not defined')
+            # a en b hebben niet dezelfde type
+            elif var.type != _type:
+                raise Exception ('Variable ' + name + ' does not have type ' + var.type)
+
+        # int a = 5
+        else:
+            #voor int, float is er een A_EXP node meer dan bij char 
+            if not types[_type] == exp.children[0].value and not types[_type] == exp.children[0].children[0].value:
+                raise Exception("Variable " + name + " not matching type " + _type)
+
+        for var in scope:
+                if var.name == name:
+                    raise Exception("Variable " + name + " is already declared")
+    
+        self.scope.append(variable(cst, False, name, _type))
+
     
     
