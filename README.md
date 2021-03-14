@@ -71,7 +71,7 @@ The tests are written in the directory testInputs.
     * assignments (+ operations with variables)
 
 All these tests are made to compare the generated llvm code output with the output we expected it to generate.
-to run the tests:
+To run the tests:
 ```
 ./test.sh
 ```
