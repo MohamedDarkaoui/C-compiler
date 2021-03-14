@@ -268,16 +268,15 @@ class ASTCreator:
 
         #FIND VARIABLE IN SCOPE AND CHECK THAT IT IS NOT A CONST VARIABLE
         check = False
+        usedVar = None
         for var in currentScope:
             if var.name == name:
                 _type = var.type
                 check = True
+                usedVar = var
                 #CHECK THE VARIABLE IS NOT CONST
                 if var.const:
                     raise Exception("Variable " + name + " is constant so its value cannot be changed.")
-                #SET THE VARIABLE TO INITIALIZED IF IT ISNT
-                if not var.init:
-                    var.init = True
                 break
         #CHECK VARIABLE EXISTS IN THE SCOPE
         if not check:
@@ -303,6 +302,12 @@ class ASTCreator:
             #CHECK DEFINED        
             if not checkDef:
                 raise Exception("Variable " + var + " is not defined.")
+        
+        #SET THE VARIABLE TO INITIALIZED IF IT ISNT
+        if not usedVar.init:
+            usedVar.init = True        
+
+
 
     #FUNCTION THAT RETURNS ALL VARIABLES USED IN A SUBTREE
     def getAllVariables(self, currentNode):

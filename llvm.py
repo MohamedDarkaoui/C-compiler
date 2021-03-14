@@ -9,36 +9,37 @@ class LLVMGenerator:
         }
         self.symbolTable = None
         self.counter = 1
+        self.code = ""
 
     def toLLVM(self, filename):
         self.symbolTable = symbolTable()
         open(filename, "w+")
         with open(filename, 'w') as file:
-            file.write(self.createLLVM(self.ast.root))
+            self.createLLVM(self.ast.root)
+            file.write(self.code)
         file.close()
+        self.code = ""
 
     def createLLVM(self, currentNode):
-        code = ""
         if currentNode.value == "DEC":
-            code += self.translateDeclaration(currentNode)
+            self.translateDeclaration(currentNode)
         elif currentNode.value == "DEF":
-            code += self.translateDefinition(currentNode)
+            self.translateDefinition(currentNode)
         elif currentNode.value == "ASSIGN":
-            code += self.translateAssignment(currentNode)
+            self.translateAssignment(currentNode)
         for child in currentNode.children:
-            code += self.createLLVM(child)
-        return code
+            self.createLLVM(child)
+        
 
     def translateDeclaration(self, node):
         #----
         _type, name = self.getTypeAndName(node)
-        code = "%" + str(self.counter) + " = alloca " + self.typeDict[_type][0] + ", align " + str(self.typeDict[_type][1]) + "\n"
+        self.code += "%" + str(self.counter) + " = alloca " + self.typeDict[_type][0] + ", align " + str(self.typeDict[_type][1]) + "\n"
         self.symbolTable.table.append(symbolTableElement(name, _type, self.counter))
         self.counter += 1
-        return code
         
     def translateDefinition(self, node):
-        code = self.translateDeclaration(node)
+        self.translateDeclaration(node)
 
         _type, name = self.getTypeAndName(node)
         exp = node.children[-1]
@@ -46,48 +47,67 @@ class LLVMGenerator:
 
         if _type == 'char':
             character  = exp.children[0].children[0].value[1]
-            code += "store i8 " + str(ord(character)) + ", i8* %" + str(tableElement.variableNumber) + ", align 1\n" 
+            self.code += "store i8 " + str(ord(character)) + ", i8* %" + str(tableElement.variableNumber) + ", align 1\n" 
         
         elif _type == "int":
             usedVariables = self.getAllVariables(exp)
             if not usedVariables:
-                code += "store i32 " + str(int(float(exp.children[0].children[0].children[0].value))) + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
+                self.code += "store i32 " + str(int(float(exp.children[0].children[0].children[0].value))) + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
             else:
-                #meer dan een store
-                pass
+                if exp.children[0].value == "A_EXP":
+                    if exp.children[0].children[0].value == "VAR":
+                        rightElement = self.symbolTable.findElement(exp.children[0].children[0].children[0].value)
+                        self.code += "store i32 %" + str(rightElement.variableNumber) + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
+                else:
+                    resultVar = self.operationRecursion(exp.children[0], "i32")
+                    self.code += "store i32 " + resultVar + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
         else:
             usedVariables = self.getAllVariables(exp)
             if not usedVariables:
-                code += "store float " + str(float(exp.children[0].children[0].children[0].value)) + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
+                self.code += "store float " + str(float(exp.children[0].children[0].children[0].value)) + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
             else:
-                #meer dan een store
-                pass
-
-        return code
+                if exp.children[0].value == "A_EXP":
+                    if exp.children[0].children[0].value == "VAR":
+                        rightElement = self.symbolTable.findElement(exp.children[0].children[0].children[0].value)
+                        self.code += "store float %" + str(rightElement.variableNumber) + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
+                else:
+                    resultVar = self.operationRecursion(exp.children[0], "float")
+                    self.code += "store float " + resultVar + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
 
     def translateAssignment(self, node):
-        code = ""
         name = self.getTypeAndName(node)[1]
         tableElement = self.symbolTable.findElement(name)
         exp = node.children[-1]
 
         if tableElement.type == 'char':
             character  = exp.children[0].children[0].value[1]
-            code += "store i8 " + str(ord(character)) + ", i8* %" + name + ", align 1\n" 
+            self.code += "store i8 " + str(ord(character)) + ", i8* %" + name + ", align 1\n" 
 
         elif tableElement.type == 'int':
             usedVariables = self.getAllVariables(exp)
             if not usedVariables:
-                code += "store i32 " + str(int(float(exp.children[0].children[0].children[0].value))) + ", i32* %" + name + ", align 4\n"
+                self.code += "store i32 " + str(int(float(exp.children[0].children[0].children[0].value))) + ", i32* %" + name + ", align 4\n"
             else:
-                pass
+                if exp.children[0].value == "A_EXP":
+                    if exp.children[0].children[0].value == "VAR":
+                        rightElement = self.symbolTable.findElement(exp.children[0].children[0].children[0].value)
+                        self.code += "store i32 %" + str(rightElement.variableNumber) + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
+                else:
+                        resultVar = self.operationRecursion(exp.children[0], "i32")
+                        self.code += "store i32 " + resultVar + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
+
         elif tableElement.type == 'float':
             usedVariables = self.getAllVariables(exp)
             if not usedVariables:
-                code += "store float " + str(float(exp.children[0].children[0].children[0].value)) + ", float* %" + name + ", align 4\n"
+                self.code += "store float " + str(float(exp.children[0].children[0].children[0].value)) + ", float* %" + name + ", align 4\n"
             else:
-                pass
-        return code
+                if exp.children[0].value == "A_EXP":
+                    if exp.children[0].children[0].value == "VAR":
+                        rightElement = self.symbolTable.findElement(exp.children[0].children[0].children[0].value)
+                        self.code += "store float %" + str(rightElement.variableNumber) + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
+                else:
+                    resultVar = self.operationRecursion(exp.children[0], "float")
+                    self.code += "store float " + resultVar + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
 
 
     def getTypeAndName(self, node):
@@ -109,3 +129,31 @@ class LLVMGenerator:
             for child in currentNode.children:
                 variables += self.getAllVariables(child)
         return variables
+
+    def operationRecursion(self, node, _type):
+        operators = ['+','-','/','*','%']
+        if node.value in operators:
+            leftOperandi = self.operationRecursion(node.children[0], _type)
+            rightOperandi = self.operationRecursion(node.children[1], _type)
+            newVariable = "%" + str(self.counter)
+            self.counter+=1
+            if node.value == '+':
+                self.code += newVariable + " = add nsw " + _type + " " +leftOperandi + ", " + rightOperandi + "\n"
+            elif node.value == '-':
+                self.code += newVariable + " = sub nsw " + _type + " " +leftOperandi + ", " + rightOperandi + "\n"
+            elif node.value == '*':
+                self.code += newVariable + " = mul nsw " + _type + " " +leftOperandi + ", " + rightOperandi + "\n"
+            elif node.value == '/':
+                self.code += newVariable + " = sdiv " + _type + " " +leftOperandi + ", " + rightOperandi + "\n"
+            else:
+                self.code += newVariable + " = srem " + _type + " " +leftOperandi + ", " + rightOperandi + "\n"
+            return newVariable
+        elif node.value == 'A_EXP':
+            if node.children[0].value == "VAR":
+                name = "%" + str(self.symbolTable.findElement(node.children[0].children[0].value).variableNumber)
+                return name
+            else:
+                if _type == "i32":
+                    return str(int(float(node.children[0].children[0].value)))
+                elif _type == "float":
+                    return str(float(node.children[0].children[0].value))
