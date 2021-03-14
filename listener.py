@@ -1,12 +1,9 @@
 # Generated from Grammar.g4 by ANTLR 4.9.1
 from antlr4 import *
+from antlr4.error.ErrorListener import ErrorListener
+import sys
+sys.tracebacklimit = 0
 
-
-
-if __name__ is not None and "." in __name__:
-    from .GrammarParser import GrammarParser
-else:
-    from GrammarParser import GrammarParser
 
 
 from GrammarListener import *
@@ -124,3 +121,8 @@ class Listener(GrammarListener):
     # Exit a parse tree produced by GrammarParser#character.
     def exitCharacter(self, ctx):
         pass
+
+
+class CErrorListener(ErrorListener):
+    def syntaxError(self, recognizer, offendingSymbol, line, column, err, e):
+        raise Exception("[Syntax Error] Line {} Position {}: {}".format(line, column, err))

@@ -66,6 +66,7 @@ class ASTCreator:
         for i in range(4):
             self.fixNode(root, i)
         self.semanticsAnalizer(root)
+
         self.constantFolding(root)
         return AST(root)
 
@@ -162,8 +163,7 @@ class ASTCreator:
             return currentNode.children[0].children[0].value
         else:
             for child in currentNode.children:
-                self.constantFolding(child)
-
+                self.constantFolding(child)                
 
     def semanticsAnalizer(self, currentNode):
         if currentNode.value == "DEC":
@@ -203,7 +203,7 @@ class ASTCreator:
         
         for var in currentScope:
             if var.name == name:
-                raise Exception("Variable " + name + " is already declared")
+                raise Exception("[Semantic Error] Variable " + name + " is already declared")
 
         newVar = variable(False, False, name, _type)
         self.scope.append(newVar)
@@ -233,13 +233,13 @@ class ASTCreator:
         #CHECK IF VARIABLE DOESNT EXISTS IN THE SCOPE
         for var in currentScope:
             if var.name == name:
-                    raise Exception("Variable " + name + " is already declared")
+                    raise Exception("[Semantic Error] Variable " + name + " is already declared")
 
         #CHECK RVALUE HAS THE SAME TYPE AS THE TYPE OF THE VARIABLE
         if (_type == "int" or _type == "float") and exp.children[0].value == "CHAR":
-            raise Exception("Variable " + name + " is of type " + _type + " but his rvalue is of type char.")
+            raise Exception("[Semantic Error] Variable " + name + " is of type " + _type + " but his rvalue is of type char.")
         elif (_type == "char") and not exp.children[0].value == "CHAR":
-            raise Exception("Variable " + name + " is of type " + _type + " but his rvalue is of type int or float.")
+            raise Exception("[Semantic Error] Variable " + name + " is of type " + _type + " but his rvalue is of type int or float.")
         
         #CHECK Use of an undefined or uninitialized variable in the RVALUE of the assignment
         usedVariables =  self.getAllVariables(exp)
@@ -250,10 +250,10 @@ class ASTCreator:
                     checkDef = True
                     #CHECK INITIALIZED
                     if not var2.init:
-                        raise Exception("Variable " + var + " is not initialized.")
+                        raise Exception("[Semantic Error] Variable " + var + " is not initialized.")
             #CHECK DEFINED        
             if not checkDef:
-                raise Exception("Variable " + var + " is not defined.")
+                raise Exception("[Semantic Error] Variable " + var + " is not defined.")
 
         self.scope.append(variable(cst, True, name, _type))
 
@@ -276,18 +276,18 @@ class ASTCreator:
                 usedVar = var
                 #CHECK THE VARIABLE IS NOT CONST
                 if var.const:
-                    raise Exception("Variable " + name + " is constant so its value cannot be changed.")
+                    raise Exception("[Semantic Error] Variable " + name + " is constant so its value cannot be changed.")
                 break
         #CHECK VARIABLE EXISTS IN THE SCOPE
         if not check:
-            raise Exception("Variable " + name + " doesnt exist in the scope.")
+            raise Exception("[Semantic Error] Variable " + name + " doesnt exist in the scope.")
 
 
         #CHECK RVALUE HAS THE SAME TYPE AS THE TYPE OF THE VARIABLE
         if (_type == "int" or _type == "float") and exp.children[0].value == "CHAR":
-            raise Exception("Variable " + name + " is of type " + _type + " but his rvalue is of type char.")
+            raise Exception("[Semantic Error] Variable " + name + " is of type " + _type + " but his rvalue is of type char.")
         elif (_type == "char") and not exp.children[0].value == "CHAR":
-            raise Exception("Variable " + name + " is of type " + _type + " but his rvalue is of type int or float.")
+            raise Exception("[Semantic Error] Variable " + name + " is of type " + _type + " but his rvalue is of type int or float.")
         
         #CHECK Use of an undefined or uninitialized variable in the RVALUE of the assignment
         usedVariables =  self.getAllVariables(exp)
@@ -298,10 +298,10 @@ class ASTCreator:
                     checkDef = True
                     #CHECK INITIALIZED
                     if not var2.init:
-                        raise Exception("Variable " + var + " is not initialized.")
+                        raise Exception("[Semantic Error] Variable " + var + " is not initialized.")
             #CHECK DEFINED        
             if not checkDef:
-                raise Exception("Variable " + var + " is not defined.")
+                raise Exception("[Semantic Error] Variable " + var + " is not defined.")
         
         #SET THE VARIABLE TO INITIALIZED IF IT ISNT
         if not usedVar.init:

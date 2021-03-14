@@ -8,8 +8,12 @@ MINUS: '-';
 TIMES: '*';
 DIV: '/';
 MODULO: '%';
+BC: '/*';
+EC: '*/';
 LP: '(';
 RP: ')';
+COMMENT1:'/*' .*? '*/' -> skip;
+COMMENT2:'//' .*? '\n' -> skip;
 ASSIGN: '=';
 SEMICOLON: ';';
 POINT: '.';
@@ -30,16 +34,17 @@ variable: ID;
 CHARACTER: '\'' . '\'';
 character : CHARACTER;
 
+
 statement: definition | declaration | assignment;
-declaration: types (TIMES|AMPERSAND)? variable SEMICOLON;
-definition: CONST? types (TIMES|AMPERSAND)? variable ASSIGN  expression SEMICOLON;
-assignment: (TIMES|AMPERSAND)? variable ASSIGN expression SEMICOLON;
+declaration: types  variable SEMICOLON;
+definition: CONST? types  variable ASSIGN  expression SEMICOLON;
+assignment:  variable ASSIGN expression SEMICOLON;
 
 
 expression: arithmetic_expression | character;
 arithmetic_expression:
     signed_int
-    | (TIMES|AMPERSAND)? variable
+    | variable
     | float_number
     | LP arithmetic_expression RP
     | arithmetic_expression (TIMES | DIV) arithmetic_expression
