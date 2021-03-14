@@ -4,7 +4,7 @@
 
 ### Implemented features:
 ---
-### project 1:
+### Project 1:
 ---
 
 ##### Mandatory
@@ -23,7 +23,7 @@
 * [ ]  Logical operators &&, ||, and !.
 * [x] Constant Folding
 
-### project 2:
+### Project 2:
 ---
 ##### Mandatory
 * [x] Types (int, char, float, pointers).
@@ -37,7 +37,7 @@
 * [ ] Identifier Operations
 * [x] Implicit conversions
 
-### project 3:
+### Project 3:
 ---
 ##### Mandatory
 * [x] Support for single line comments and multiline comments.
@@ -45,7 +45,7 @@
 * [x] LLVM code generation &nbsp;&nbsp; (for the most part)
     * we still need to implement poiter support, printf() and fix some small problems like information loss when adding int with float.     
 
-#### how to run:
+#### How to run:
 ---
 To create the GrammarLexer, GrammarParser, GrammarListener,... This uses Python2.
 ```
