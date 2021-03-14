@@ -54,25 +54,15 @@ class LLVMGenerator:
             if not usedVariables:
                 self.code += "store i32 " + str(int(float(exp.children[0].children[0].children[0].value))) + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
             else:
-                if exp.children[0].value == "A_EXP":
-                    if exp.children[0].children[0].value == "VAR":
-                        rightElement = self.symbolTable.findElement(exp.children[0].children[0].children[0].value)
-                        self.code += "store i32 %" + str(rightElement.variableNumber) + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
-                else:
-                    resultVar = self.operationRecursion(exp.children[0], "i32")
-                    self.code += "store i32 " + resultVar + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
+                resultVar = self.operationRecursion(exp.children[0], "i32")
+                self.code += "store i32 " + resultVar + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
         else:
             usedVariables = self.getAllVariables(exp)
             if not usedVariables:
                 self.code += "store float " + str(float(exp.children[0].children[0].children[0].value)) + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
             else:
-                if exp.children[0].value == "A_EXP":
-                    if exp.children[0].children[0].value == "VAR":
-                        rightElement = self.symbolTable.findElement(exp.children[0].children[0].children[0].value)
-                        self.code += "store float %" + str(rightElement.variableNumber) + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
-                else:
-                    resultVar = self.operationRecursion(exp.children[0], "float")
-                    self.code += "store float " + resultVar + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
+                resultVar = self.operationRecursion(exp.children[0], "float")
+                self.code += "store float " + resultVar + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
 
     def translateAssignment(self, node):
         name = self.getTypeAndName(node)[1]
@@ -88,26 +78,16 @@ class LLVMGenerator:
             if not usedVariables:
                 self.code += "store i32 " + str(int(float(exp.children[0].children[0].children[0].value))) + ", i32* %" + name + ", align 4\n"
             else:
-                if exp.children[0].value == "A_EXP":
-                    if exp.children[0].children[0].value == "VAR":
-                        rightElement = self.symbolTable.findElement(exp.children[0].children[0].children[0].value)
-                        self.code += "store i32 %" + str(rightElement.variableNumber) + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
-                else:
-                        resultVar = self.operationRecursion(exp.children[0], "i32")
-                        self.code += "store i32 " + resultVar + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
+                resultVar = self.operationRecursion(exp.children[0], "i32")
+                self.code += "store i32 " + resultVar + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
 
         elif tableElement.type == 'float':
             usedVariables = self.getAllVariables(exp)
             if not usedVariables:
                 self.code += "store float " + str(float(exp.children[0].children[0].children[0].value)) + ", float* %" + name + ", align 4\n"
             else:
-                if exp.children[0].value == "A_EXP":
-                    if exp.children[0].children[0].value == "VAR":
-                        rightElement = self.symbolTable.findElement(exp.children[0].children[0].children[0].value)
-                        self.code += "store float %" + str(rightElement.variableNumber) + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
-                else:
-                    resultVar = self.operationRecursion(exp.children[0], "float")
-                    self.code += "store float " + resultVar + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
+                resultVar = self.operationRecursion(exp.children[0], "float")
+                self.code += "store float " + resultVar + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
 
 
     def getTypeAndName(self, node):
@@ -135,23 +115,40 @@ class LLVMGenerator:
         if node.value in operators:
             leftOperandi = self.operationRecursion(node.children[0], _type)
             rightOperandi = self.operationRecursion(node.children[1], _type)
+
+            operator_dict = {'+' : 'add nsw', '-' : 'sub nsw', '*' : 'mul nsw', '/' : 'sdiv', '%' : 'srem'}
+            operator = node.value
+
             newVariable = "%" + str(self.counter)
             self.counter+=1
-            if node.value == '+':
-                self.code += newVariable + " = add nsw " + _type + " " +leftOperandi + ", " + rightOperandi + "\n"
-            elif node.value == '-':
-                self.code += newVariable + " = sub nsw " + _type + " " +leftOperandi + ", " + rightOperandi + "\n"
-            elif node.value == '*':
-                self.code += newVariable + " = mul nsw " + _type + " " +leftOperandi + ", " + rightOperandi + "\n"
-            elif node.value == '/':
-                self.code += newVariable + " = sdiv " + _type + " " +leftOperandi + ", " + rightOperandi + "\n"
-            else:
-                self.code += newVariable + " = srem " + _type + " " +leftOperandi + ", " + rightOperandi + "\n"
+            self.code += newVariable + " = " + operator_dict[operator]+ ' ' + _type + " " +leftOperandi + ", " + rightOperandi + "\n"
+
             return newVariable
+
         elif node.value == 'A_EXP':
             if node.children[0].value == "VAR":
-                name = "%" + str(self.symbolTable.findElement(node.children[0].children[0].value).variableNumber)
-                return name
+                newVar = None
+                tableElement = self.symbolTable.findElement(node.children[0].children[0].value)
+                name = "%" + str(tableElement.variableNumber)
+                if _type == 'i32' and tableElement.type == 'float':
+                    tempVar = '%' + str(self.counter)
+                    self.counter+=1
+                    newVar = '%' + str(self.counter) 
+                    self.counter += 1
+                    self.code += tempVar + ' = load float, float* ' + name + ', align 4\n'
+                    self.code += newVar + ' = fptosi float ' + tempVar + ' to i32\n'
+                elif _type == 'float' and tableElement.type == 'int':
+                    tempVar = '%' + str(self.counter)
+                    self.counter+=1
+                    newVar = '%' + str(self.counter) 
+                    self.counter += 1
+                    self.code += tempVar + ' = load i32, i32* ' + name + ', align 4\n'
+                    self.code += newVar + ' = sitofp i32 ' + tempVar + ' to float\n'
+                else:  
+                    newVar = '%' + str(self.counter) 
+                    self.code += newVar + ' = load ' + _type + ', ' + _type + '* ' + name + ', align 4\n'
+                    self.counter += 1 
+                return newVar
             else:
                 if _type == "i32":
                     return str(int(float(node.children[0].children[0].value)))

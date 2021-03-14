@@ -28,8 +28,9 @@ types: INT | CHAR | FLOAT;
 ID: [_a-zA-Z][_a-zA-Z0-9]*;
 variable: ID;
 CHARACTER: '\'' . '\'';
+character : CHARACTER;
 
-statement: definition | declaration | assignment | comment;
+statement: definition | declaration | assignment;
 declaration: types (TIMES|AMPERSAND)? variable SEMICOLON;
 definition: CONST? types (TIMES|AMPERSAND)? variable ASSIGN  expression SEMICOLON;
 assignment: (TIMES|AMPERSAND)? variable ASSIGN expression SEMICOLON;
