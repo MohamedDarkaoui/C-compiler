@@ -2,9 +2,9 @@ import sys
 from antlr4 import *
 from GrammarLexer import GrammarLexer
 from GrammarParser import GrammarParser
-from listener import Listener, CErrorListener
-from ast import *
-from llvm import LLVMGenerator
+from src.listener import Listener, CErrorListener
+from src.AST.ASTCreator import ASTCreator
+#from llvm import LLVMGenerator
 
 def main(argv):
     input_stream = FileStream(argv[1])
@@ -18,10 +18,11 @@ def main(argv):
     walker = ParseTreeWalker()
     walker.walk(listener, tree)
     astcreator = ASTCreator(tree, listener.queue)
-    ast = astcreator.generateTree()
+    ast = astcreator.generateAST()
     ast.dot("treeGraph")
-    llvmgenerator = LLVMGenerator(ast)
-    llvmgenerator.toLLVM('llvm.ll')
+
+    #llvmgenerator = LLVMGenerator(ast)
+    #llvmgenerator.toLLVM('llvm.ll')
 
 if __name__ == '__main__':
     main(sys.argv)
