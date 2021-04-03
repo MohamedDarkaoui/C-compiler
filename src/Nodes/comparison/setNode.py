@@ -1,15 +1,15 @@
-from node import Node
+from .. import Node
 
-class DecNode(Node):
+class SetNode(Node):
     def __init__(self, oldNode):
         Node.__init__(self,oldNode.value, oldNode.parent, oldNode.children)
         self.changeParent(oldNode)
         self.changeParentOfChildren()
-        self.type = None
-        self.var = None
-
+        self.leftOp = None
+        self.rightOp = None
+    
     def changeAttributes(self):
-        self.type = self.children[0]
-        self.var = self.children[1]
+        self.leftOp = self.children[0]
+        self.rightOp = self.children[1]
         for child in self.children:
             child.changeAttributes()

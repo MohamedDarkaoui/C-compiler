@@ -61,6 +61,40 @@ class Listener(GrammarListener):
     def enterCharacter(self, ctx):
         self.queue.append("CHAR")
 
+    #------- 03/04/2021
+    # Enter a parse tree produced by GrammarParser#condition.
+    def enterCondition(self, ctx):
+        self.queue.append("CONDITION")
+
+    # Enter a parse tree produced by GrammarParser#comparison_expression.
+    def enterComparison_expression(self, ctx):
+        self.queue.append("COMPARISON")
+    
+    # Enter a parse tree produced by GrammarParser#block.
+    def enterBlock(self, ctx):
+        self.queue.append("BLOCK")
+
+    # Enter a parse tree produced by GrammarParser#selection_sequence.
+    def enterSelection_sequence(self, ctx):
+        self.queue.append("SELECT")
+
+    # Enter a parse tree produced by GrammarParser#else_statement.
+    def enterElse_statement(self, ctx):
+        self.queue.append("ELSE")
+        
+    # Enter a parse tree produced by GrammarParser#else_if_statement.
+    def enterElse_if_statement(self, ctx):
+        self.queue.append("ELSE IF")
+    
+        # Enter a parse tree produced by GrammarParser#if_statement.
+    def enterIf_statement(self, ctx):
+        self.queue.append("IF")
+    
+    # Enter a parse tree produced by GrammarParser#while_statement.
+    def enterWhile_statement(self, ctx):
+        self.queue.append("WHILE")
+
+        
 
 class CErrorListener(ErrorListener):
     def syntaxError(self, recognizer, offendingSymbol, line, column, err, e):

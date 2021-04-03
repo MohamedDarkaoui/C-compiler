@@ -1,4 +1,4 @@
-from node import Node
+from .. import Node
 
 class DefNode(Node):
     def __init__(self, oldNode):

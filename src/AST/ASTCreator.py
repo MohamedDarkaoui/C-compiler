@@ -25,8 +25,11 @@ class ASTCreator:
         self.changeNode(root)
         #SET ATTRIBUTES
         root.changeAttributes()
+
         #SYMBOL TABLE
         #CREATE SYMBOL TABLE
+        ###MORE CODE
+
         #CONSTANT FOLDING
         root.constantFolding()
         #RESET ASTCREATOR
@@ -59,14 +62,15 @@ class ASTCreator:
 
         #REMOVE USELESS NODES
         if fixNumber == 0:
-            uselessNodes = ['(', ')', ';', '=', '<EOF>']
+            uselessNodes = ['(', ')', ';', '=', '<EOF>', '{', '}', 'if', 'else', 'while']
             for child in currentNode.children:
                 if child.value in uselessNodes:
                     currentNode.children.remove(child)
+                    self.fixNode(currentNode, fixNumber)
 
         #FIX OPERATOR ALS ROOT
         elif fixNumber == 1:
-            operators = ['+', '-', '/', '*', '%']
+            operators = ['+', '-', '/', '*', '%', '==', '!=', '>', '>=', '<', '<=']
             if len(currentNode.children) == 3:
                 if currentNode.children[1].value in operators:
                     currentNode.value = currentNode.children[1].value
@@ -129,6 +133,39 @@ class ASTCreator:
         
         elif currentNode.value == "VAR":
             VarNode(currentNode)
+
+        elif currentNode.value == "IF":
+            IfNode(currentNode)
+
+        elif currentNode.value == "ELSE IF":
+            ElseIfNode(currentNode)
+
+        elif currentNode.value == "ELSE":
+            ElseNode(currentNode)
+
+        elif currentNode.value == "WHILE":
+            WhileNode(currentNode)
+    
+        elif currentNode.value == "==":
+            EqNode(currentNode)
+
+        elif currentNode.value == "!=":
+            NeqNode(currentNode)
+        
+        elif currentNode.value == ">":
+            GtNode(currentNode)
+        
+        elif currentNode.value == ">=":
+            GetNode(currentNode)
+        
+        elif currentNode.value == "<":
+            StNode(currentNode)
+        
+        elif currentNode.value == "<=":
+            SetNode(currentNode)
+
+        elif currentNode.value == "SELECT":
+            SelectNode(currentNode)
         
         elif currentNode.value in constTypes:
             ConstNode(currentNode)

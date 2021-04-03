@@ -1,7 +1,21 @@
 grammar Grammar;
 
-startRule: statement* EOF;
+startRule: block EOF;
 
+
+
+
+IF: 'if';
+ELSE: 'else';
+WHILE: 'while';
+EQ: '==';
+NEQ: '!=';
+GT: '>';
+ST: '<';
+GET: '>=';
+SET: '<=';
+LB: '{';
+RB: '}';
 
 PLUS: '+';
 MINUS: '-';
@@ -34,11 +48,18 @@ variable: ID;
 CHARACTER: '\'' . '\'';
 character : CHARACTER;
 
-
-statement: definition | declaration | assignment;
+statement: definition | declaration | assignment | selection_sequence | while_statement;
 declaration: types  variable SEMICOLON;
 definition: CONST? types  variable ASSIGN  expression SEMICOLON;
 assignment:  variable ASSIGN expression SEMICOLON;
+if_statement: IF LP condition RP LB block RB;
+else_if_statement: ELSE IF LP condition RP LB block RB;
+else_statement: ELSE LB block RB;
+selection_sequence: if_statement else_if_statement*? else_statement?;
+while_statement: WHILE LP condition RP LB block RB;
+
+
+block: statement*?;
 
 
 expression: arithmetic_expression | character;
@@ -50,3 +71,9 @@ arithmetic_expression:
     | arithmetic_expression (TIMES | DIV) arithmetic_expression
     | arithmetic_expression (PLUS|MINUS) arithmetic_expression
     | arithmetic_expression MODULO arithmetic_expression;
+
+comparison_expression:
+    | expression (EQ | NEQ | GT | ST | GET | SET) expression;
+
+
+condition: comparison_expression;

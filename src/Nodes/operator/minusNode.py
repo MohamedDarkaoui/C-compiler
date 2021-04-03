@@ -1,7 +1,7 @@
-from node import Node
-from constNode import ConstNode
+from .. import Node
+from .. import ConstNode
 
-class PlusNode(Node):
+class MinusNode(Node):
     def __init__(self, oldNode):
         Node.__init__(self,oldNode.value, oldNode.parent, oldNode.children)
         self.changeParent(oldNode)
@@ -22,7 +22,7 @@ class PlusNode(Node):
         else:
             leftValue = float(self.leftOp.constantFolding())
             rightValue = float(self.rightOp.constantFolding())
-            result = leftValue + rightValue
+            result = leftValue - rightValue
             newNode = ConstNode(self)
             newNode.value = str(result)
             newNode.type = "FLOAT"
