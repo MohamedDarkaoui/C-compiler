@@ -25,10 +25,14 @@ class ASTCreator:
         self.changeNode(root)
         #SET ATTRIBUTES
         root.changeAttributes()
+        #SYMBOL TABLE
+        #CREATE SYMBOL TABLE
+        #CONSTANT FOLDING
+        root.constantFolding()
         #RESET ASTCREATOR
         self.currentTreeNode = self.tree
         self.queue_number = 0
-
+        
         #RETURN AN AST WITH root AS ROOT
         return AST(root)
 

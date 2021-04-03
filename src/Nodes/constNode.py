@@ -15,3 +15,6 @@ class ConstNode(Node):
     
     def __str__ (self):
         return self.type + ": " + self.value
+
+    def constantFolding(self):
+        return self.value

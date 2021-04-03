@@ -1,5 +1,5 @@
 from node import Node
-
+from constNode import ConstNode
 class MulNode(Node):
     def __init__(self, oldNode):
         Node.__init__(self,oldNode.value, oldNode.parent, oldNode.children)
@@ -13,3 +13,20 @@ class MulNode(Node):
         self.rightOp = self.children[1]
         for child in self.children:
             child.changeAttributes()
+    
+    def constantFolding(self):
+        if self.leftOp.findVariable() or self.rightOp.findVariable():
+            self.leftOp.constantFolding()
+            self.rightOp.constantFolding()
+        else:
+            leftValue = float(self.leftOp.constantFolding())
+            rightValue = float(self.rightOp.constantFolding())
+            result = leftValue * rightValue
+            newNode = ConstNode(self)
+            newNode.value = str(result)
+            newNode.type = "FLOAT"
+            newNode.children = []
+            
+        
+            
+        

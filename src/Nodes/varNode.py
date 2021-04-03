@@ -15,3 +15,6 @@ class VarNode(Node):
 
     def __str__ (self):
         return "Var: " + self.value
+
+    def findVariable(self):
+        return True

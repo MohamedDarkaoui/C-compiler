@@ -20,6 +20,14 @@ class Node:
     def changeAttributes(self):
         for child in self.children:
             child.changeAttributes()
+    
+    def constantFolding(self):
+        for child in self.children:
+            child.constantFolding()
 
     def __str__ (self):
         return self.value
+    
+    def findVariable(self):
+        for child in self.children:
+            return child.findVariable()

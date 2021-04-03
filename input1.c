@@ -1,3 +1,1 @@
-const int a = 4;
-char b = '2';
-b = 12 + 13.5;
+int b = a + 5 + 6*(c-7);

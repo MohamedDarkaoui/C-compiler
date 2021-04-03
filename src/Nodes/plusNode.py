@@ -1,4 +1,5 @@
 from node import Node
+from constNode import ConstNode
 
 class PlusNode(Node):
     def __init__(self, oldNode):
@@ -13,3 +14,16 @@ class PlusNode(Node):
         self.rightOp = self.children[1]
         for child in self.children:
             child.changeAttributes()
+    
+    def constantFolding(self):
+        if self.leftOp.findVariable() or self.rightOp.findVariable():
+            self.leftOp.constantFolding()
+            self.rightOp.constantFolding()
+        else:
+            leftValue = float(self.leftOp.constantFolding())
+            rightValue = float(self.rightOp.constantFolding())
+            result = leftValue + rightValue
+            newNode = ConstNode(self)
+            newNode.value = str(result)
+            newNode.type = "FLOAT"
+            newNode.children = []

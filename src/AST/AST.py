@@ -30,14 +30,3 @@ class AST:
             dot += self.generateDot(child)
     
         return dot
-    
-"""
-class variable:
-    def __init__(self, Const, Init, Name, Type, Pointer=False):
-        self.const = Const
-        self.init = Init
-        self.name = Name
-        self.type = Type
-        self.pointer = Pointer
-"""
-
