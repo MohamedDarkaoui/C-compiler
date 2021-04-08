@@ -1,16 +1,7 @@
-int a = 2;
-
-while (a < 20) {
-    if (a < 5) {
-        a = a + 2;
+void hello(int i){
+    char c = 'i';
+    float f = 11.2;
+    while (1<f) {
+        int t = 1;
     }
-
-    else if (a < 15) {
-        a = a + 1;
-    }
-
-    else {
-        a = a + 2;
-    }
-
 }

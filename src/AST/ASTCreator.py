@@ -19,7 +19,7 @@ class ASTCreator:
         #GENERATES CST
         self.generateCST(root)
         #GENERATES AST
-        for i in range(4):
+        for i in range(6):
             self.fixNode(root, i)
         #SWITCHS NODES
         self.changeNode(root)
@@ -62,7 +62,7 @@ class ASTCreator:
 
         #REMOVE USELESS NODES
         if fixNumber == 0:
-            uselessNodes = ['(', ')', ';', '=', '<EOF>', '{', '}', 'if', 'else', 'while']
+            uselessNodes = ['(', ')', ';', '=', '<EOF>', '{', '}', 'if', 'else', 'while',',']
             for child in currentNode.children:
                 if child.value in uselessNodes:
                     currentNode.children.remove(child)
@@ -93,7 +93,22 @@ class ASTCreator:
                     value += child.value
                 currentNode.children = [currentNode.children[0]]
                 currentNode.children[0].value = value
-                
+        # when declaring a function, remove parent of FUNC_DEC whitch is FUNCTION
+        elif fixNumber == 4:
+            if currentNode.value == "FUNC_DEC" and currentNode.parent.value == "FUNCTION":
+                index = currentNode.parent.parent.children.index(currentNode.parent) 
+                currentNode.parent.parent.children[index] = currentNode
+                currentNode.parent = currentNode.parent.parent
+        
+        elif fixNumber == 5:
+            if currentNode.value == "FUNCTION" :
+                if currentNode.children[0].value == "FUNC_DEF" and currentNode.children[0].children[0].value == "FUNC_DEC":
+                    children = currentNode.children[0].children[0].children
+                    children += currentNode.children[0].children[1:]
+                    currentNode.children = children
+                    for child in children:
+                        child.parent = currentNode
+
         for child in currentNode.children:
             self.fixNode(child, fixNumber)
 
@@ -166,7 +181,14 @@ class ASTCreator:
 
         elif currentNode.value == "SELECT":
             SelectNode(currentNode)
+
+        elif currentNode.value == "FUNC_DEC":
+            FuncDecNode(currentNode)
         
+        elif currentNode.value == "FUNCTION":
+            FuncNode(currentNode)
+            
+
         elif currentNode.value in constTypes:
             ConstNode(currentNode)
 

@@ -42,14 +42,21 @@ UNDERSCORE: '_';
 INT: 'int';
 CHAR: 'char';
 FLOAT: 'float';
+VOID: 'void';
+RETURN: 'return';
 types: INT | CHAR | FLOAT;
+function_types: types | VOID;
 ID: [_a-zA-Z][_a-zA-Z0-9]*;
 variable: ID;
 CHARACTER: '\'' . '\'';
 character : CHARACTER;
+COMMA: ',';
+arg: types variable;
+arguments : ((arg) (COMMA arg)*)?;
 
-statement: definition | declaration | assignment | selection_sequence | while_statement;
-declaration: types  variable SEMICOLON;
+
+statement: definition | declaration | assignment | selection_sequence | while_statement | function;
+declaration: types variable SEMICOLON;
 definition: CONST? types  variable ASSIGN  expression SEMICOLON;
 assignment:  variable ASSIGN expression SEMICOLON;
 if_statement: IF LP condition RP LB block RB;
@@ -57,6 +64,9 @@ else_if_statement: ELSE IF LP condition RP LB block RB;
 else_statement: ELSE LB block RB;
 selection_sequence: if_statement else_if_statement*? else_statement?;
 while_statement: WHILE LP condition RP LB block RB;
+function_declaration: function_types variable LP arguments RP;
+function_definition: function_declaration LB block RB;
+function: function_definition | function_declaration SEMICOLON;
 
 
 block: statement*?;

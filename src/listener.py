@@ -93,8 +93,32 @@ class Listener(GrammarListener):
     # Enter a parse tree produced by GrammarParser#while_statement.
     def enterWhile_statement(self, ctx):
         self.queue.append("WHILE")
+    
+        # Enter a parse tree produced by GrammarParser#function_declaration.
+    def enterFunction_declaration(self, ctx):
+        self.queue.append("FUNC_DEC")
 
-        
+    # Enter a parse tree produced by GrammarParser#function_definition.
+    def enterFunction_definition(self, ctx):
+        self.queue.append("FUNC_DEF")
+
+    # Enter a parse tree produced by GrammarParser#function.
+    def enterFunction(self, ctx):
+        self.queue.append("FUNCTION")
+
+    # Enter a parse tree produced by GrammarParser#arguments.
+    def enterArguments(self, ctx):
+        self.queue.append("ARGS")
+
+    # Enter a parse tree produced by GrammarParser#function_types.
+    def enterFunction_types(self, ctx):
+        self.queue.append("FTYPE")
+
+    # Enter a parse tree produced by GrammarParser#arg.
+    def enterArg(self, ctx):
+        self.queue.append("ARG")
+
+
 
 class CErrorListener(ErrorListener):
     def syntaxError(self, recognizer, offendingSymbol, line, column, err, e):
