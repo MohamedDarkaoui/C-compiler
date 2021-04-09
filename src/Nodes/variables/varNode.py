@@ -14,7 +14,8 @@ class VarNode(Node):
             child.changeAttributes()
 
     def __str__ (self):
-        return "Var: " + self.value
+        
+        return "Name: " + self.value if self.parent.value == 'FUNC_DEC' or self.parent.value == 'FUNC_DEF' or self.parent.value == 'FUNC_CALL' else 'Var: ' + self.value
 
     def findVariable(self):
         return True

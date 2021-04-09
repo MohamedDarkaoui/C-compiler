@@ -31,23 +31,24 @@ class ASTCreator:
         ###MORE CODE
 
         #CONSTANT FOLDING
-        root.constantFolding()
+        #root.constantFolding()
         #RESET ASTCREATOR
         self.currentTreeNode = self.tree
         self.queue_number = 0
         
         #RETURN AN AST WITH root AS ROOT
         return AST(root)
-
+    
     def generateCST(self, currentNode):
         """
         Recursion function that generates the cst
         """
+        []
         parent = self.currentTreeNode
         if parent.getChildCount() > 0:
             for child in parent.getChildren():
                 newChild = Node(child.getText(), currentNode)
-                if child.getChildCount() > 0:
+                if child.getChildCount() > 0 or child.getText() == "":
                     newChild = Node(self.queue[self.queue_number], currentNode)
                     self.queue_number += 1
                 currentNode.addChild(newChild)
@@ -62,7 +63,7 @@ class ASTCreator:
 
         #REMOVE USELESS NODES
         if fixNumber == 0:
-            uselessNodes = ['(', ')', ';', '=', '<EOF>', '{', '}', 'if', 'else', 'while',',']
+            uselessNodes = ['(', ')', ';', '=', '<EOF>', '{', '}', 'if', 'else', 'while',',','for', 'return']
             for child in currentNode.children:
                 if child.value in uselessNodes:
                     currentNode.children.remove(child)
@@ -93,21 +94,8 @@ class ASTCreator:
                     value += child.value
                 currentNode.children = [currentNode.children[0]]
                 currentNode.children[0].value = value
-        # when declaring a function, remove parent of FUNC_DEC whitch is FUNCTION
-        elif fixNumber == 4:
-            if currentNode.value == "FUNC_DEC" and currentNode.parent.value == "FUNCTION":
-                index = currentNode.parent.parent.children.index(currentNode.parent) 
-                currentNode.parent.parent.children[index] = currentNode
-                currentNode.parent = currentNode.parent.parent
         
-        elif fixNumber == 5:
-            if currentNode.value == "FUNCTION" :
-                if currentNode.children[0].value == "FUNC_DEF" and currentNode.children[0].children[0].value == "FUNC_DEC":
-                    children = currentNode.children[0].children[0].children
-                    children += currentNode.children[0].children[1:]
-                    currentNode.children = children
-                    for child in children:
-                        child.parent = currentNode
+        
 
         for child in currentNode.children:
             self.fixNode(child, fixNumber)
@@ -185,9 +173,35 @@ class ASTCreator:
         elif currentNode.value == "FUNC_DEC":
             FuncDecNode(currentNode)
         
-        elif currentNode.value == "FUNCTION":
-            FuncNode(currentNode)
-            
+        elif currentNode.value == "FUNC_DEF":
+            FuncDefNode(currentNode)
+        
+        elif currentNode.value == "FTYPE":
+            FuncTypeNode(currentNode)
+
+        elif currentNode.value == "ARGS":
+            ArgsNode(currentNode)
+
+        elif currentNode.value == "ARG":
+            ArgNode(currentNode)
+        
+        elif currentNode.value == "FOR":
+            ForNode(currentNode)
+        
+        elif currentNode.value == "BREAK":
+            BreakNode(currentNode)
+        
+        elif currentNode.value == "CONTINUE":
+            ContinueNode(currentNode)
+
+        elif currentNode.value == "FUNC_CALL":
+            FuncCallNode(currentNode)
+
+        elif currentNode.value == "PARAM":
+            ParamNode(currentNode)
+        
+        elif currentNode.value == "RETURN":
+            ReturnNode(currentNode)
 
         elif currentNode.value in constTypes:
             ConstNode(currentNode)

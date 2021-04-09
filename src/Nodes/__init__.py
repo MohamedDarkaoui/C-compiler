@@ -21,5 +21,14 @@ from comparison.setNode import SetNode
 from comparison.gtNode import GtNode
 from comparison.getNode import GetNode
 from selection.selectNode import SelectNode
-from function.funcNode import FuncNode
+from function.funcDefNode import FuncDefNode
 from function.funcDecNode import FuncDecNode
+from function.funcTypeNode import FuncTypeNode
+from function.argNode import ArgNode
+from function.argsNode import ArgsNode
+from loop.forNode import ForNode
+from loop.breakNode import BreakNode
+from loop.continueNode import ContinueNode
+from function.funcCallNode import FuncCallNode
+from function.paramNode import ParamNode
+from function.returnNode import ReturnNode

@@ -8,6 +8,9 @@ startRule: block EOF;
 IF: 'if';
 ELSE: 'else';
 WHILE: 'while';
+FOR: 'for';
+BREAK: 'break';
+CONTINUE: 'continue';
 EQ: '==';
 NEQ: '!=';
 GT: '>';
@@ -53,28 +56,40 @@ character : CHARACTER;
 COMMA: ',';
 arg: types variable;
 arguments : ((arg) (COMMA arg)*)?;
+parameters: ((expression) (COMMA expression)*)?;
 
 
-statement: definition | declaration | assignment | selection_sequence | while_statement | function;
+statement: definition | declaration | assignment | selection_sequence | while_statement | function_declaration | 
+function_definition | for_statement | unnamed_scope | break_statement | continue_statement | function_call SEMICOLON | return_statement;
+
 declaration: types variable SEMICOLON;
 definition: CONST? types  variable ASSIGN  expression SEMICOLON;
 assignment:  variable ASSIGN expression SEMICOLON;
+for_assignment: variable ASSIGN expression;
 if_statement: IF LP condition RP LB block RB;
 else_if_statement: ELSE IF LP condition RP LB block RB;
 else_statement: ELSE LB block RB;
 selection_sequence: if_statement else_if_statement*? else_statement?;
 while_statement: WHILE LP condition RP LB block RB;
-function_declaration: function_types variable LP arguments RP;
-function_definition: function_declaration LB block RB;
-function: function_definition | function_declaration SEMICOLON;
+function_declaration: function_types variable LP arguments RP SEMICOLON;
+function_definition: function_types variable LP arguments RP LB block RB;
+function_call: variable LP parameters RP;
+break_statement: BREAK SEMICOLON;
+continue_statement: CONTINUE SEMICOLON;
+return_statement: RETURN expression? SEMICOLON;
 
+
+
+
+for_statement: FOR LP (definition|assignment) condition SEMICOLON for_assignment RP LB block RB;
 
 block: statement*?;
-
+unnamed_scope: LB statement*? RB;
 
 expression: arithmetic_expression | character;
 arithmetic_expression:
     signed_int
+    | function_call
     | variable
     | float_number
     | LP arithmetic_expression RP

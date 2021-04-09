@@ -102,10 +102,6 @@ class Listener(GrammarListener):
     def enterFunction_definition(self, ctx):
         self.queue.append("FUNC_DEF")
 
-    # Enter a parse tree produced by GrammarParser#function.
-    def enterFunction(self, ctx):
-        self.queue.append("FUNCTION")
-
     # Enter a parse tree produced by GrammarParser#arguments.
     def enterArguments(self, ctx):
         self.queue.append("ARGS")
@@ -118,6 +114,37 @@ class Listener(GrammarListener):
     def enterArg(self, ctx):
         self.queue.append("ARG")
 
+    # Enter a parse tree produced by GrammarParser#for_assignment.
+    def enterFor_assignment(self, ctx):
+        self.queue.append("ASSIGN")
+    
+    # Enter a parse tree produced by GrammarParser#for_statement.
+    def enterFor_statement(self, ctx):
+        self.queue.append("FOR")
+
+    # Enter a parse tree produced by GrammarParser#unnamed_scope.
+    def enterUnnamed_scope(self, ctx):
+        self.queue.append("BLOCK")
+
+    # Enter a parse tree produced by GrammarParser#break_statement.
+    def enterBreak_statement(self, ctx):
+        self.queue.append("BREAK")
+    
+    # Enter a parse tree produced by GrammarParser#continue_statement.
+    def enterContinue_statement(self, ctx):
+        self.queue.append("CONTINUE")
+
+    # Enter a parse tree produced by GrammarParser#function_call.
+    def enterFunction_call(self, ctx):
+        self.queue.append("FUNC_CALL")
+    
+    # Enter a parse tree produced by GrammarParser#parameters.
+    def enterParameters(self, ctx):
+        self.queue.append("PARAM")
+
+    # Enter a parse tree produced by GrammarParser#return_statement.
+    def enterReturn_statement(self, ctx):
+        self.queue.append("RETURN")
 
 
 class CErrorListener(ErrorListener):
