@@ -63,7 +63,7 @@ class ASTCreator:
 
         #REMOVE USELESS NODES
         if fixNumber == 0:
-            uselessNodes = ['(', ')', ';', '=', '<EOF>', '{', '}', 'if', 'else', 'while',',','for', 'return']
+            uselessNodes = ['(', ')', ';', '=', '<EOF>', '{', '}','[',']', 'if', 'else', 'while',',','for', 'return']
             for child in currentNode.children:
                 if child.value in uselessNodes:
                     currentNode.children.remove(child)

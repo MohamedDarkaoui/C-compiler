@@ -146,6 +146,10 @@ class Listener(GrammarListener):
     def enterReturn_statement(self, ctx):
         self.queue.append("RETURN")
 
+     # Enter a parse tree produced by GrammarParser#index.
+    def enterIndex(self, ctx):
+        self.queue.append("INDEX")
+
 
 class CErrorListener(ErrorListener):
     def syntaxError(self, recognizer, offendingSymbol, line, column, err, e):

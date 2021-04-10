@@ -5,10 +5,17 @@ class VarNode(Node):
         Node.__init__(self, oldNode.value, oldNode.parent, oldNode.children)
         self.changeParent(oldNode)
         self.changeParentOfChildren()
+        self.isArray = False
+        self.index = None
         self.var = None
     
     def changeAttributes(self):
         self.value = self.children[0].value
+        if len(self.children) > 1:
+            self.isArray = True
+            self.index = self.children[1].children[0]
+            self.value += '['+ str(self.index) + ']'
+
         self.children = []
         for child in self.children:
             child.changeAttributes()

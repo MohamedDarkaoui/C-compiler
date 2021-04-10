@@ -19,6 +19,8 @@ GET: '>=';
 SET: '<=';
 LB: '{';
 RB: '}';
+LSB: '[';
+RSB: ']';
 
 PLUS: '+';
 MINUS: '-';
@@ -50,20 +52,22 @@ RETURN: 'return';
 types: INT | CHAR | FLOAT;
 function_types: types | VOID;
 ID: [_a-zA-Z][_a-zA-Z0-9]*;
-variable: ID;
+variable: ID index*?;
 CHARACTER: '\'' . '\'';
 character : CHARACTER;
 COMMA: ',';
 arg: types variable;
 arguments : ((arg) (COMMA arg)*)?;
 parameters: ((expression) (COMMA expression)*)?;
+index : LSB UNSIGNED_INT RSB;
 
 
 statement: definition | declaration | assignment | selection_sequence | while_statement | function_declaration | 
 function_definition | for_statement | unnamed_scope | break_statement | continue_statement | function_call SEMICOLON | return_statement;
 
+
 declaration: types variable SEMICOLON;
-definition: CONST? types  variable ASSIGN  expression SEMICOLON;
+definition: CONST? types  variable ASSIGN  expression SEMICOLON | CONST? types  variable ASSIGN  LB (expression (COMMA expression)*)? RB SEMICOLON;
 assignment:  variable ASSIGN expression SEMICOLON;
 for_assignment: variable ASSIGN expression;
 if_statement: IF LP condition RP LB block RB;
