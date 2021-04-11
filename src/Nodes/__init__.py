@@ -32,3 +32,5 @@ from loop.continueNode import ContinueNode
 from function.funcCallNode import FuncCallNode
 from function.paramNode import ParamNode
 from function.returnNode import ReturnNode
+from scopes.programNode import ProgramNode
+from scopes.scopeNode import ScopeNode

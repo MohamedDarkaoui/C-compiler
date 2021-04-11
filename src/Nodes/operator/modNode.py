@@ -16,12 +16,13 @@ class ModNode(Node):
             child.changeAttributes()
     
     def constantFolding(self):
-        if self.leftOp.findVariable() or self.rightOp.findVariable():
-            self.leftOp.constantFolding()
-            self.rightOp.constantFolding()
-        else:
-            leftValue = float(self.leftOp.constantFolding())
-            rightValue = float(self.rightOp.constantFolding())
+        self.leftOp.constantFolding()
+        self.rightOp.constantFolding()
+        self.leftOp = self.children[0]
+        self.rightOp = self.children[1]
+        if not (self.leftOp.findVariable() or self.rightOp.findVariable()):
+            leftValue = float(self.leftOp.value)
+            rightValue = float(self.rightOp.value)
             result = leftValue % rightValue
             newNode = ConstNode(self)
             newNode.value = str(result)

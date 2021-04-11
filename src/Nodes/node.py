@@ -30,4 +30,6 @@ class Node:
     
     def findVariable(self):
         for child in self.children:
-            return child.findVariable()
+            if child.findVariable():
+                return True
+        return False

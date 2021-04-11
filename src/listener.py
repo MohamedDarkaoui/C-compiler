@@ -150,6 +150,10 @@ class Listener(GrammarListener):
     def enterIndex(self, ctx):
         self.queue.append("INDEX")
 
+    # Enter a parse tree produced by GrammarParser#array_initializator.
+    def enterArray_initializator(self, ctx):
+        self.queue.append("ARRAY_INIT")
+
 
 class CErrorListener(ErrorListener):
     def syntaxError(self, recognizer, offendingSymbol, line, column, err, e):

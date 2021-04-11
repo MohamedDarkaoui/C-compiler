@@ -31,7 +31,7 @@ class ASTCreator:
         ###MORE CODE
 
         #CONSTANT FOLDING
-        #root.constantFolding()
+        root.constantFolding()
         #RESET ASTCREATOR
         self.currentTreeNode = self.tree
         self.queue_number = 0
@@ -202,6 +202,12 @@ class ASTCreator:
         
         elif currentNode.value == "RETURN":
             ReturnNode(currentNode)
+
+        elif currentNode.value == "BLOCK":
+            ScopeNode(currentNode)
+        
+        elif currentNode.value == "PROG":
+            ProgramNode(currentNode)
 
         elif currentNode.value in constTypes:
             ConstNode(currentNode)

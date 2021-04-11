@@ -67,7 +67,7 @@ function_definition | for_statement | unnamed_scope | break_statement | continue
 
 
 declaration: types variable SEMICOLON;
-definition: CONST? types  variable ASSIGN  expression SEMICOLON | CONST? types  variable ASSIGN  LB (expression (COMMA expression)*)? RB SEMICOLON;
+definition: CONST? types  variable ASSIGN  expression SEMICOLON | CONST? types  variable ASSIGN array_initializator SEMICOLON;
 assignment:  variable ASSIGN expression SEMICOLON;
 for_assignment: variable ASSIGN expression;
 if_statement: IF LP condition RP LB block RB;
@@ -81,11 +81,8 @@ function_call: variable LP parameters RP;
 break_statement: BREAK SEMICOLON;
 continue_statement: CONTINUE SEMICOLON;
 return_statement: RETURN expression? SEMICOLON;
-
-
-
-
 for_statement: FOR LP (definition|assignment) condition SEMICOLON for_assignment RP LB block RB;
+array_initializator: LB (expression (COMMA expression)*)? RB; 
 
 block: statement*?;
 unnamed_scope: LB statement*? RB;

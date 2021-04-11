@@ -13,3 +13,6 @@ class FuncCallNode(Node):
         self.parameters = self.children[1]
         for child in self.children:
             child.changeAttributes()
+    
+    def findVariable(self):
+        return True
