@@ -1,6 +1,6 @@
 from src.AST.AST import AST
 from src.Nodes import *
-
+from SemanticAnalizer import SemanticAnalizer
 
 class ASTCreator:
     def __init__(self, tree, queue):
@@ -26,12 +26,14 @@ class ASTCreator:
         #SET ATTRIBUTES
         root.changeAttributes()
 
-        #SYMBOL TABLE
-        #CREATE SYMBOL TABLE
-        ###MORE CODE
-
         #CONSTANT FOLDING
         root.constantFolding()
+
+        #SEMANTIC ANALYZE
+        semanticAnalizer = SemanticAnalizer(self)
+        semanticAnalizer.analize(root)
+
+        
         #RESET ASTCREATOR
         self.currentTreeNode = self.tree
         self.queue_number = 0

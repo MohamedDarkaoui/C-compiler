@@ -112,7 +112,7 @@ class Listener(GrammarListener):
 
     # Enter a parse tree produced by GrammarParser#arg.
     def enterArg(self, ctx):
-        self.queue.append("ARG")
+        self.queue.append("DEC")
 
     # Enter a parse tree produced by GrammarParser#for_assignment.
     def enterFor_assignment(self, ctx):
@@ -153,6 +153,10 @@ class Listener(GrammarListener):
     # Enter a parse tree produced by GrammarParser#array_initializator.
     def enterArray_initializator(self, ctx):
         self.queue.append("ARRAY_INIT")
+
+    # Enter a parse tree produced by GrammarParser#noIndexVariable.
+    def enterNoIndexVariable(self, ctx):
+        self.queue.append("VAR")
 
 
 class CErrorListener(ErrorListener):
