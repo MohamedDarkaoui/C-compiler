@@ -21,15 +21,6 @@ global_scope:
 """
 
 
-
-
-
-class argument:
-    def __init__(self, type, name):
-        self.type = type
-        self.name = name
-
-
 class variable:
     def __init__(self, node, type, init, const):
         self.name = node.value
@@ -65,22 +56,30 @@ class scope:
 
         return allElements
 
-    def isInScope(self, name):
+    def isInScope(self, name, type):
         allElements = self.getAllElements()
 
-        for element in allElements:
-            if element.name == name:
-                return True
-                
+        if type == 'variable':
+            for element in allElements:
+                if element.name == name and isinstance(element, variable):
+                    return True
+        else:
+            for element in allElements:
+                if element.name == name and isinstance(element, Function):
+                    return True
+
         return False
 
-    def getElement(self, name):
+    def getElement(self, name, type):
         allElements = self.getAllElements()
-
-        for element in allElements:
-            if element.name == name:
-                return element
-
+        if type == 'variable':
+            for element in allElements:
+                if element.name == name and isinstance(element, variable):
+                    return element
+        else:
+            for element in allElements:
+                if element.name == name and isinstance(element, Function):
+                    return element
         return None
 
 
@@ -113,5 +112,16 @@ class else_scope(scope):
         scope.__init__(self, parentScope)
 
 class func_scope(scope):
-    def __init__(self, parentScope):
+    def __init__(self, parentScope, arguments, returnType):
         scope.__init__(self, parentScope)
+        self.arguments = arguments
+        self.returnType = returnType
+    
+    def getAllElements(self):
+        allElements = []
+        for x in self.symbolTable:
+            if not isinstance(x, scope):
+                allElements.append(x)
+
+        if self.parentScope is not None:
+            return self.arguments + allElements + self.parentScope.getAllElements()

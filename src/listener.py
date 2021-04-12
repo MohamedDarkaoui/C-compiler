@@ -94,10 +94,6 @@ class Listener(GrammarListener):
     def enterWhile_statement(self, ctx):
         self.queue.append("WHILE")
     
-        # Enter a parse tree produced by GrammarParser#function_declaration.
-    def enterFunction_declaration(self, ctx):
-        self.queue.append("FUNC_DEC")
-
     # Enter a parse tree produced by GrammarParser#function_definition.
     def enterFunction_definition(self, ctx):
         self.queue.append("FUNC_DEF")
@@ -112,7 +108,7 @@ class Listener(GrammarListener):
 
     # Enter a parse tree produced by GrammarParser#arg.
     def enterArg(self, ctx):
-        self.queue.append("DEC")
+        self.queue.append("ARG")
 
     # Enter a parse tree produced by GrammarParser#for_assignment.
     def enterFor_assignment(self, ctx):

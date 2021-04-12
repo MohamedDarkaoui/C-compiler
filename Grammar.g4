@@ -63,7 +63,7 @@ parameters: ((expression) (COMMA expression)*)?;
 index : LSB UNSIGNED_INT RSB;
 
 
-statement: definition | declaration | assignment | selection_sequence | while_statement | function_declaration | 
+statement: definition | declaration | assignment | selection_sequence | while_statement | 
 function_definition | for_statement | unnamed_scope | break_statement | continue_statement | function_call SEMICOLON | return_statement;
 
 
@@ -76,7 +76,6 @@ else_if_statement: ELSE IF LP condition RP LB block RB;
 else_statement: ELSE LB block RB;
 selection_sequence: if_statement else_if_statement*? else_statement?;
 while_statement: WHILE LP condition RP LB block RB;
-function_declaration: function_types noIndexVariable LP arguments RP SEMICOLON;
 function_definition: function_types noIndexVariable LP arguments RP LB block RB;
 function_call: noIndexVariable LP parameters RP;
 break_statement: BREAK SEMICOLON;

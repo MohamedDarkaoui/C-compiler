@@ -5,7 +5,7 @@ class ConstNode(Node):
         Node.__init__(self, oldNode.value, oldNode.parent, oldNode.children)
         self.changeParent(oldNode)
         self.changeParentOfChildren()
-        self.type = self.value
+        self.type = self.value.lower()
 
     def changeAttributes(self):
         self.value = self.children[0].value
