@@ -57,14 +57,26 @@ class SemanticAnalizer:
             self.checkExistence(currentNode.var.value, 'variable')
 
             #CHECK THAT THE VARIABLE ISN'T CONSTANT
-            if self.currentScope.getElement(currentNode.var.value).const:
+            if self.currentScope.getElement(currentNode.var.value, 'variable').const:
                 raise Exception("Semantic Error: Variable " + currentNode.var.value + " is constant so its value cannot be changed.")
 
             #CHECK THE RHS
-            self.analizeRHS(currentNode.rvalue, self.currentScope.getElement(currentNode.var.value).type)
+            self.analizeRHS(currentNode.rvalue, self.currentScope.getElement(currentNode.var.value, 'variable').type)
+            
+            #SPECIAL CASE IF ITS AN ARRAY
+
+            #CHECK WRONG ASSIGN VARIABLE/ARRAY
+            element = self.currentScope.getElement(currentNode.var.value, 'variable')
+            if element.isArray != currentNode.var.isArray:
+                raise Exception('Variable ' + element.name + ' is an array.')
+            
+            #CHECK INDEX < ARRAY SIZE (CASE ITS AN ARRAY)
+            if element.isArray:
+                if currentNode.var.size >= element.size:
+                    raise Exception('Index is greater than the array size.')
 
             #INITIALIZE VARIABLE IF ITS NOT INITIALIZED
-            self.currentScope.getElement(currentNode.var.value).init = True
+            self.currentScope.getElement(currentNode.var.value, 'variable').init = True
         
         elif isinstance(currentNode, FuncDefNode):
             #RETRIEVE DATA
@@ -141,6 +153,15 @@ class SemanticAnalizer:
             elif element.type == 'char':
                 if type in ['int', 'float']:
                     raise Exception("Semantic Error: Variable " + currentNode.value + " is of type " + element.type + ' but it should be of type int or float.')
+            
+            #SPECIAL CASE ARRAY
+            if element.isArray != currentNode.isArray:
+                raise Exception('Variable ' + element.name + ' is an array.')
+            
+            #CHECK INDEX < ARRAY SIZE (CASE ITS AN ARRAY)
+            if element.isArray:
+                if currentNode.size >= element.size:
+                    raise Exception('Index is greater than the array size.')
 
         elif isinstance(currentNode, FuncCallNode):         # FUNCTION CALLS
             # ANALIZE FUNCTION
@@ -219,8 +240,6 @@ class SemanticAnalizer:
 
 
         #CHECK IF ITS A NUMBERS COMPARISON
-
-
 
         #12/04/2021
         ## TO DO:

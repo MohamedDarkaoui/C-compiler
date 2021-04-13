@@ -13,7 +13,7 @@ class VarNode(Node):
         self.value = self.children[0].value
         if len(self.children) > 1:
             self.isArray = True
-            self.size = self.children[1].children[0]
+            self.size = int(self.children[1].children[0].value)
         self.children = []
         for child in self.children:
             child.changeAttributes()

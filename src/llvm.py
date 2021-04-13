@@ -1,156 +1,198 @@
-from symbolTable import symbolTableElement, symbolTable
-class LLVMGenerator:
-    def __init__(self, ast):
-        self.ast = ast
+from symbolTable import *
+from src.Nodes import *
+
+class LLVM():
+    def __init__(self, AST):
+        self.root = AST.root
+        self.code = ''
+        self.currentScope = None
+        self.counter = 1
         self.typeDict = { 
             'int':('i32',4),
             'float':('float',4),
             'char':('i8',1)
         }
-        self.symbolTable = None
-        self.counter = 1
-        self.code = ""
 
     def toLLVM(self, filename):
-        self.symbolTable = symbolTable()
         open(filename, "w+")
         with open(filename, 'w') as file:
-            self.createLLVM(self.ast.root)
+            self.createLLVM(self.root)
             file.write(self.code)
         file.close()
         self.code = ""
 
+
+
+    
     def createLLVM(self, currentNode):
-        if currentNode.value == "DEC":
+        oldScope = self.currentScope
+        if isinstance(currentNode, ScopeNode):
+            #CREATE GLOBAL SCOPE
+            if currentNode.value == 'global_scope':
+                self.currentScope = global_scope()
+                oldScope = self.currentScope
+            elif currentNode.value == 'unnamed_scope':
+                self.currentScope = unnamed_scope(self.currentScope)
+                oldScope = self.currentScope
+            elif currentNode.value == 'if_scope':
+                self.currentScope = if_scope(self.currentScope)
+                oldScope = self.currentScope
+            elif currentNode.value == 'elif_scope':
+                self.currentScope = elif_scope(self.currentScope)
+                oldScope = self.currentScope
+            elif currentNode.value == 'else_scope':
+                self.currentScope = else_scope(self.currentScope)
+                oldScope = self.currentScope
+            elif currentNode.value == 'while_scope':
+                self.currentScope = while_scope(self.currentScope)
+                oldScope = self.currentScope
+
+        if isinstance(currentNode, DecNode):
             self.translateDeclaration(currentNode)
-        elif currentNode.value == "DEF":
+        elif isinstance(currentNode, DefNode):
             self.translateDefinition(currentNode)
-        elif currentNode.value == "ASSIGN":
+        elif isinstance(currentNode, AssignNode):
             self.translateAssignment(currentNode)
+
+
         for child in currentNode.children:
             self.createLLVM(child)
-        
+            if oldScope is not None:
+                self.currentScope = oldScope
+    
+
 
     def translateDeclaration(self, node):
-        #----
-        _type, name = self.getTypeAndName(node)
-        self.code += "%" + str(self.counter) + " = alloca " + self.typeDict[_type][0] + ", align " + str(self.typeDict[_type][1]) + "\n"
-        self.symbolTable.table.append(symbolTableElement(name, _type, self.counter))
-        self.counter += 1
+        name, type = (node.var.value, node.type.value)
+        if isinstance(self.currentScope, global_scope):
+            self.code += '@' + name + ' = global ' + self.typeDict[type][0] + ' undef, align ' + str(self.typeDict[type][1]) + '\n'
+            newVariable = variable(node.var, type, True, False, ('@' + name, type))
+            self.currentScope.addElement(newVariable)
+        else:
+            self.code += '%' + str(self.counter) + ' = alloca ' + self.typeDict[type][0] + ', align ' + str(self.typeDict[type][1]) + '\n'
+            newVariable = variable(node.var, type, True, False, ('%' + str(self.counter), type))
+            self.currentScope.addElement(newVariable)
+            self.counter += 1
+
         
+
     def translateDefinition(self, node):
         self.translateDeclaration(node)
-
-        _type, name = self.getTypeAndName(node)
-        exp = node.children[-1]
-        tableElement = self.symbolTable.findElement(name)
-
-        if _type == 'char':
-            character  = exp.children[0].children[0].value[1]
-            self.code += "store i8 " + str(ord(character)) + ", i8* %" + str(tableElement.variableNumber) + ", align 1\n" 
+        self.translateAssignment(node)
         
-        elif _type == "int":
-            usedVariables = self.getAllVariables(exp)
-            if not usedVariables:
-                self.code += "store i32 " + str(int(float(exp.children[0].children[0].children[0].value))) + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
-            else:
-                resultVar = self.operationRecursion(exp.children[0], "i32")
-                self.code += "store i32 " + resultVar + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
-        else:
-            usedVariables = self.getAllVariables(exp)
-            if not usedVariables:
-                self.code += "store float " + str(float(exp.children[0].children[0].children[0].value)) + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
-            else:
-                resultVar = self.operationRecursion(exp.children[0], "float")
-                self.code += "store float " + resultVar + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
-
     def translateAssignment(self, node):
-        name = self.getTypeAndName(node)[1]
-        tableElement = self.symbolTable.findElement(name)
-        exp = node.children[-1]
+        element = self.currentScope.getElement(node.var.value, 'variable')
+        resultReg = self.getRegFromRHS(node.children[-1])
+        if resultReg[1] != element.type:
+            if not resultReg[0][0] in ['%', '@']:
+                if element.type == 'float':
+                    resultReg = (str(float(int(resultReg[0]))), 'float')
+                elif element.type == 'int':
+                    resultReg = (str(int(float(resultReg[0]))), 'int')
+            else:    
+                newReg = '%' + str(self.counter)
+                self.counter += 1
+                if resultReg[1] == 'int':
+                    #set to float
+                    self.code += newReg + ' = sitofp i32 ' + resultReg[0] + ' to float\n'
+                    resultReg = (newReg, 'float')
+                elif resultReg[1] == 'float':
+                    #set to int
+                    self.code += newReg + ' = fptosi float ' + resultReg[0] + ' to i32\n'
+                    resultReg = (newReg, 'int')
 
-        if tableElement.type == 'char':
-            character  = exp.children[0].children[0].value[1]
-            self.code += "store i8 " + str(ord(character)) + ", i8* %" + name + ", align 1\n" 
+        self.code += 'store ' + self.typeDict[element.type][0] + ' ' + resultReg[0] + ', ' + self.typeDict[element.type][0] 
+        self.code += '* ' + element.register[0] + ', align ' + str(self.typeDict[element.type][1]) + '\n'
 
-        elif tableElement.type == 'int':
-            usedVariables = self.getAllVariables(exp)
-            if not usedVariables:
-                self.code += "store i32 " + str(int(float(exp.children[0].children[0].children[0].value))) + ", i32* %" + name + ", align 4\n"
+
+
+    def getRegFromRHS(self, node):
+        operators = ['+', '-', '*', '/', '%']
+
+        if isinstance(node, ConstNode):
+            if node.type == 'char':
+                return ord(node.value)
+            return (node.value, node.type)
+        
+        elif isinstance(node, VarNode):
+            element = self.currentScope.getElement(node.value, 'variable')
+            return element.register
+        
+        elif node.value in operators:
+            leftOp = self.getRegFromRHS(node.leftOp)
+            rightOp = self.getRegFromRHS(node.rightOp)
+
+            isLeftOpVar = leftOp[0][0] in ['%','@']
+            isRightOpVar = rightOp[0][0] in ['%','@']
+            leftOpType = None
+            rightOpType = None
+
+            if isinstance(leftOp, int):
+                leftOpType = 'int'
+            elif isinstance(leftOp, float):
+                leftOpType = 'float'
             else:
-                resultVar = self.operationRecursion(exp.children[0], "i32")
-                self.code += "store i32 " + resultVar + ", i32* %" + str(tableElement.variableNumber) + ", align 4\n"
+                leftOpType = leftOp[1]
 
-        elif tableElement.type == 'float':
-            usedVariables = self.getAllVariables(exp)
-            if not usedVariables:
-                self.code += "store float " + str(float(exp.children[0].children[0].children[0].value)) + ", float* %" + name + ", align 4\n"
+            if isinstance(rightOp, int):
+                rightOpType = 'int'
+            elif isinstance(rightOp, float):
+                rightOpType = 'float'
             else:
-                resultVar = self.operationRecursion(exp.children[0], "float")
-                self.code += "store float " + resultVar + ", float* %" + str(tableElement.variableNumber) + ", align 4\n"
+                rightOpType = rightOp[1]
 
 
-    def getTypeAndName(self, node):
-        _type = ""
-        name = ""
-        for child in node.children:
-            if child.value == 'TYPE':
-                _type = child.children[0].value
-            elif child.value == 'VAR':
-                name = child.children[0].value
-        return _type, name
+            if leftOpType != rightOpType:
+                if leftOpType == 'int':
+                    if not isLeftOpVar:
+                        leftOp[0] = float(leftOp[0])
+                        leftOp[1] = 'float'
+                        leftOpType = 'float'
+                    else:
+                        temp = '%' + str(self.counter)
+                        self.counter += 1
+                        self.code += temp + ' = sitofp i32 ' + leftOp[0] + ' to float\n'
+                        leftOp = (temp, 'float')
+                        leftOpType = 'float'
+                else:
+                    if not isRightOpVar:
+                        rightOp[0] = float(rightOp[0])
+                        rightOp[1] = 'float'
+                        rightOpType = 'float'
+                    else:
+                        temp = '%' + str(self.counter)
+                        self.counter += 1
+                        self.code += temp + ' = sitofp i32 ' + rightOp[0] + ' to float\n'
+                        rightOp = (temp, 'float')
+                        rightOpType = 'float'
 
-    #FUNCTION THAT RETURNS ALL VARIABLES USED IN A SUBTREE
-    def getAllVariables(self, currentNode):
-        variables = []
-        if currentNode.value == "VAR":
-            variables.append(currentNode.children[0].value)
-        else:
-            for child in currentNode.children:
-                variables += self.getAllVariables(child)
-        return variables
 
-    def operationRecursion(self, node, _type):
-        operators = ['+','-','/','*','%']
-        if node.value in operators:
-            leftOperandi = self.operationRecursion(node.children[0], _type)
-            rightOperandi = self.operationRecursion(node.children[1], _type)
+            resultReg = ('%' + str(self.counter), 'int')
+            if leftOpType == 'float':
+                resultReg = ('%' + str(self.counter), 'float')
+            self.counter += 1
 
-            operator_dict = {'+' : 'add nsw', '-' : 'sub nsw', '*' : 'mul nsw', '/' : 'sdiv', '%' : 'srem'}
-            operator = node.value
+            if isinstance(node, PlusNode):
+                if leftOpType == 'float':
+                    self.code += resultReg[0] + ' = fadd float ' + leftOp[0] + ', ' + rightOp[0] + '\n'
+                else:
+                    self.code += resultReg[0] + ' = add nsw i32 ' + leftOp[0] + ', ' + rightOp[0] + '\n'
+            elif isinstance(node, MinusNode):
+                if leftOpType == 'float':
+                    self.code += resultReg[0] + ' = fsub float ' + leftOp[0] + ', ' + rightOp[0] + '\n'
+                else:
+                    self.code += resultReg[0] + ' = sub nsw i32 ' + leftOp[0] + ', ' + rightOp[0] + '\n'
+            elif isinstance(node, MulNode):
+                if leftOpType == 'float':
+                    self.code += resultReg[0] + ' = fmul float ' + leftOp[0] + ', ' + rightOp[0] + '\n'
+                else:
+                    self.code += resultReg[0] + ' = mul nsw i32 ' + leftOp[0] + ', ' + rightOp[0] + '\n'
+            elif isinstance(node, DivNode):
+                if leftOpType == 'float':
+                    self.code += resultReg[0] + ' = fdiv float ' + leftOp[0] + ', ' + rightOp[0] + '\n'
+                else:
+                    self.code += resultReg[0] + ' = sdiv i32 ' + leftOp[0] + ', ' + rightOp[0] + '\n'
+            elif isinstance(node, ModNode):
+                    self.code += resultReg[0] + ' = srem i32 ' + leftOp[0] + ', ' + rightOp[0] + '\n'
 
-            newVariable = "%" + str(self.counter)
-            self.counter+=1
-            self.code += newVariable + " = " + operator_dict[operator]+ ' ' + _type + " " +leftOperandi + ", " + rightOperandi + "\n"
-
-            return newVariable
-
-        elif node.value == 'A_EXP':
-            if node.children[0].value == "VAR":
-                newVar = None
-                tableElement = self.symbolTable.findElement(node.children[0].children[0].value)
-                name = "%" + str(tableElement.variableNumber)
-                if _type == 'i32' and tableElement.type == 'float':
-                    tempVar = '%' + str(self.counter)
-                    self.counter+=1
-                    newVar = '%' + str(self.counter) 
-                    self.counter += 1
-                    self.code += tempVar + ' = load float, float* ' + name + ', align 4\n'
-                    self.code += newVar + ' = fptosi float ' + tempVar + ' to i32\n'
-                elif _type == 'float' and tableElement.type == 'int':
-                    tempVar = '%' + str(self.counter)
-                    self.counter+=1
-                    newVar = '%' + str(self.counter) 
-                    self.counter += 1
-                    self.code += tempVar + ' = load i32, i32* ' + name + ', align 4\n'
-                    self.code += newVar + ' = sitofp i32 ' + tempVar + ' to float\n'
-                else:  
-                    newVar = '%' + str(self.counter) 
-                    self.code += newVar + ' = load ' + _type + ', ' + _type + '* ' + name + ', align 4\n'
-                    self.counter += 1 
-                return newVar
-            else:
-                if _type == "i32":
-                    return str(int(float(node.children[0].children[0].value)))
-                elif _type == "float":
-                    return str(float(node.children[0].children[0].value))
+            return resultReg

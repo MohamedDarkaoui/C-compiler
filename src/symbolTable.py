@@ -22,13 +22,14 @@ global_scope:
 
 
 class variable:
-    def __init__(self, node, type, init, const):
+    def __init__(self, node, type, init, const, register=None):
         self.name = node.value
         self.init = init
         self.type = type
         self.const = const
         self.isArray = node.isArray
         self.size = node.size                #size of the array
+        self.register = register
 
 class Function:
     def __init__(self, name, init, arguments, returnType):
