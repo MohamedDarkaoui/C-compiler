@@ -67,6 +67,11 @@ class LLVM():
             oldScope = self.currentScope
             self.translateFor(currentNode)
             return
+        elif isinstance(currentNode, FuncDefNode):
+            self.currentScope = func_scope(self.currentScope, [], 'int')
+            oldScope = self.currentScope
+            self.translateFuncDef(currentNode)
+            return
 
 
         for child in currentNode.children:
@@ -179,6 +184,8 @@ class LLVM():
             if leftOpType == 'float':
                 resultReg = ('%' + str(self.counter), 'float')
             self.counter += 1
+            
+            
 
             if isinstance(node, PlusNode):
                 if leftOpType == 'float':
@@ -384,6 +391,8 @@ class LLVM():
         
         return conditionResult
 
+
+
     def translateWhile(self, node, increment = None):
         conditionLabel = self.getNewCounter()
         trueLabel = self.getNewCounter()
@@ -418,4 +427,12 @@ class LLVM():
         self.createLLVM(node.initiator)
         self.translateWhile(node, node.increment)
 
+    def translateFuncDef(self, node):
 
+        funcType = node.type.value
+        funcName = node.name.value
+        arguments = node.arguments.children
+        self.code += '\ndefine ' + self.typeDict[funcType][0] + ' @' + funcName + '() #0 {\n'
+        #generate code inside
+        self.createLLVM(node.body)
+        self.code += '}\n'
