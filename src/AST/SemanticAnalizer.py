@@ -30,7 +30,7 @@ class SemanticAnalizer:
                 oldScope = self.currentScope
             
         elif isinstance(currentNode, ForNode):
-            self.currentScope = global_scope()
+            self.currentScope = for_scope(self.currentScope)
             oldScope = self.currentScope
         
         elif isinstance(currentNode, DecNode):

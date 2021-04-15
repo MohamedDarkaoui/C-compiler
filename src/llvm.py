@@ -49,13 +49,25 @@ class LLVM():
 
         if isinstance(currentNode, DecNode):
             self.translateDeclaration(currentNode)
+            return
         elif isinstance(currentNode, DefNode):
             self.translateDefinition(currentNode)
+            return
         elif isinstance(currentNode, AssignNode):
             self.translateAssignment(currentNode)
+            return
         elif isinstance(currentNode, SelectNode):
             self.translateSelection(currentNode)
             return
+        elif isinstance(currentNode, WhileNode):
+            self.translateWhile(currentNode)
+            return
+        elif isinstance(currentNode, ForNode):
+            self.currentScope = for_scope(self.currentScope)
+            oldScope = self.currentScope
+            self.translateFor(currentNode)
+            return
+
 
         for child in currentNode.children:
             self.createLLVM(child)
@@ -252,8 +264,6 @@ class LLVM():
         
         self.code += '\n; <label>:' + str(endLabel) + ':\n'
 
-
-
     def translateIf(self, node, labels):
         #create register with comparison result
         comparisonNode = node.condition.children[0]
@@ -294,14 +304,10 @@ class LLVM():
         self.createLLVM(node.block)
         #br to labels['end']
         self.code += 'br label %' + str(labels['labelEnd']) + '\n'
-        
-        
-
+               
     def getNewCounter(self):
         self.counter += 1
         return self.counter-1
-
-
 
     def getComparisonResult(self, comparisonNode):
         
@@ -377,3 +383,39 @@ class LLVM():
                 self.code += conditionResult + ' = fcmp ole float ' + str(leftOpReg[0]) + ', ' + str(rightOpReg[0]) + '\n'
         
         return conditionResult
+
+    def translateWhile(self, node, increment = None):
+        conditionLabel = self.getNewCounter()
+        trueLabel = self.getNewCounter()
+        endLabel = self.getNewCounter()
+
+        #br to condition label
+        self.code += 'br label %' + str(conditionLabel) + '\n'
+
+        #create condition label
+        self.code += '\n; <label>:' + str(conditionLabel) + ':\n'
+        #get condition result
+        comparisonNode = node.condition.children[0]
+        comparisonResult = self.getComparisonResult(comparisonNode)
+        
+        #br to true label else to the end
+        self.code += 'br i1 ' + comparisonResult +', label %' + str(trueLabel) + ', label %' + str(endLabel) + '\n'
+
+        #create while label
+        self.code += '\n; <label>:' + str(trueLabel) + ':\n'
+        #generate while_scope code inside while label
+        self.createLLVM(node.block)
+        #add incrementor if its a for loop
+        if increment:
+            self.createLLVM(increment)
+        #at the end set a branch to the condition
+        self.code += 'br label %' + str(conditionLabel) + '\n'
+
+        #create an end label
+        self.code += '\n; <label>:' + str(endLabel) + ':\n'
+
+    def translateFor(self, node):
+        self.createLLVM(node.initiator)
+        self.translateWhile(node, node.increment)
+
+
