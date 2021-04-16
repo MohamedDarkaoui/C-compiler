@@ -26,7 +26,7 @@ class MulNode(Node):
             result = leftValue * rightValue
             newNode = ConstNode(self)
             newNode.value = str(result)
-            newNode.type = "FLOAT"
+            newNode.type = "float"
             newNode.children = []
             
         

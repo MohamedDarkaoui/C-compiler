@@ -1,6 +1,8 @@
-int main() {
-    int b = 3;
-    int c = 4;
-    int k = b+c;
+int mul(int x, int y) {
+    float b  = x*y;
+    return b;
+}
 
+int main() {
+    return 0;
 }
