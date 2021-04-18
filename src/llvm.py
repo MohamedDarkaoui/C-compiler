@@ -1,26 +1,43 @@
 from symbolTable import *
 from src.Nodes import *
 
+strCode = "@.strs = private unnamed_addr constant [3 x i8] c\"%s\\00\", align 1\n"
+strCode += "@.stri = private unnamed_addr constant [3 x i8] c\"%i\\00\", align 1\n"
+strCode += "@.strd = private unnamed_addr constant [3 x i8] c\"%d\\00\", align 1\n"
+strCode += "@.strf = private unnamed_addr constant [3 x i8] c\"%f\\00\", align 1\n"
+strCode += "@.strc = private unnamed_addr constant [3 x i8] c\"%c\\00\", align 1\n"
+strCode += "declare i32 @printf(i8*, ...) #1\n"
+
 class LLVM():
     def __init__(self, AST):
         self.root = AST.root
+        self.strCode = ''
         self.code = ''
         self.currentScope = None
+        self.stringCounter = 1
         self.counter = 1
         self.labelCounter = 0
         self.typeDict = { 
             'int':('i32',4),
             'float':('float',4),
-            'char':('i8',1)
+            'char':('i8',1),
+            'void':('void',1)
         }
 
     def toLLVM(self, filename):
         open(filename, "w+")
+        root = self.root
         with open(filename, 'w') as file:
             self.createLLVM(self.root)
-            file.write(self.code)
+            file.write(self.strCode + self.code)
         file.close()
-        self.code = ""
+
+        self.code = ''
+        self.strCode = ''
+        self.counter = 1
+        self.labelCounter = 0
+        self.currentScope = None
+        self.root = root
 
     def createLLVM(self, currentNode, endNumber=None, conditionNumber=None):
         oldScope = self.currentScope
@@ -52,7 +69,7 @@ class LLVM():
         elif isinstance(currentNode, AssignNode):
             self.translateAssignment(currentNode)
         elif isinstance(currentNode, SelectNode):
-            self.translateSelection(currentNode)
+            self.translateSelection(currentNode, endNumber, conditionNumber)
         elif isinstance(currentNode, WhileNode):
             self.translateWhile(currentNode)
         elif isinstance(currentNode, ForNode):
@@ -70,13 +87,20 @@ class LLVM():
             self.currentScope.addElement(newFunction)
             self.currentScope = func_scope(self.currentScope, arguments, returnType)
             oldScope = self.currentScope
-            self.translateFuncDef(currentNode)
+            self.translateFuncDef(currentNode, endNumber, conditionNumber)
         elif isinstance(currentNode, ReturnNode):
             self.translateReturn(currentNode)
         elif isinstance(currentNode, BreakNode):
             self.addBranch(endNumber)
         elif isinstance(currentNode, ContinueNode):
             self.addBranch(conditionNumber)
+        elif isinstance(currentNode, FuncCallNode):
+            self.translateFuncCall(currentNode)
+        elif isinstance(currentNode, PrintNode):
+            self.translatePrint(currentNode)
+        elif currentNode.value == '#include <stdio.h>':
+            if len(self.strCode) == 0:
+                self.strCode = strCode
 
         else:
             for child in currentNode.children:
@@ -86,15 +110,28 @@ class LLVM():
     
     def translateDeclaration(self, node):
         name, type = (node.var.value, node.type.value)
+
         if isinstance(self.currentScope, global_scope):
-            self.code += '@' + name + ' = global ' + self.typeDict[type][0] + ' undef, align ' + str(self.typeDict[type][1]) + '\n'
-            newVariable = variable(node.var, type, True, False, ('@' + name, type))
-            self.currentScope.addElement(newVariable)
+            if not node.var.isArray:
+                self.code += '@' + name + ' = global ' + self.typeDict[type][0] + ' undef, align ' + str(self.typeDict[type][1]) + '\n'
+                newVariable = variable(node.var, type, True, False, ('@' + name, type))
+                self.currentScope.addElement(newVariable)
+            else:
+                self.code += '@' + name + ' = global [' + str(node.var.size) + ' x ' + self.typeDict[type][0] + '] zeroinitializer, align 16\n'
+                newVariable = variable(node.var, type, True, False, ('@' + name, type))
+                self.currentScope.addElement(newVariable)
+
         else:
-            self.code += '%.' + str(self.counter) + ' = alloca ' + self.typeDict[type][0] + ', align ' + str(self.typeDict[type][1]) + '\n'
-            newVariable = variable(node.var, type, True, False, ('%.' + str(self.counter), type))
-            self.currentScope.addElement(newVariable)
-            self.counter += 1
+            if not node.var.isArray:
+                self.code += '%.' + str(self.counter) + ' = alloca ' + self.typeDict[type][0] + ', align ' + str(self.typeDict[type][1]) + '\n'
+                newVariable = variable(node.var, type, True, False, ('%.' + str(self.counter), type))
+                self.currentScope.addElement(newVariable)
+                self.counter += 1
+            else:
+                self.code += '%.' + str(self.counter) + ' = alloca [' + str(node.var.size) + ' x ' + self.typeDict[type][0] + '], align 16\n'
+                newVariable = newVariable = variable(node.var, type, True, False, ('%.' + str(self.counter), type))
+                self.currentScope.addElement(newVariable)
+                self.counter += 1
        
     def translateDefinition(self, node):
         self.translateDeclaration(node)
@@ -102,27 +139,53 @@ class LLVM():
         
     def translateAssignment(self, node):
         element = self.currentScope.getElement(node.var.value, 'variable')
-        resultReg = self.getRegFromRHS(node.children[-1])
-        if resultReg[1] != element.type:
-            if not resultReg[0][0] in ['%', '@']:
-                if element.type == 'float':
-                    resultReg = (str(float(int(resultReg[0]))), 'float')
-                elif element.type == 'int':
-                    resultReg = (str(int(float(resultReg[0]))), 'int')
-            else:    
-                newReg = '%.' + str(self.counter)
-                self.counter += 1
-                if resultReg[1] == 'int':
-                    #set to float
-                    self.code += newReg + ' = sitofp i32 ' + resultReg[0] + ' to float\n'
-                    resultReg = (newReg, 'float')
-                elif resultReg[1] == 'float':
-                    #set to int
-                    self.code += newReg + ' = fptosi float ' + resultReg[0] + ' to i32\n'
-                    resultReg = (newReg, 'int')
 
-        self.code += 'store ' + self.typeDict[element.type][0] + ' ' + resultReg[0] + ', ' + self.typeDict[element.type][0] 
-        self.code += '* ' + element.register[0] + ', align ' + str(self.typeDict[element.type][1]) + '\n'
+        if not element.isArray:
+            resultReg = self.getRegFromRHS(node.children[-1])
+            if resultReg[1] != element.type:
+                if not resultReg[0][0] in ['%', '@']:
+                    if element.type == 'float':
+                        resultReg = (str(float(int(resultReg[0]))), 'float')
+                    elif element.type == 'int':
+                        resultReg = (str(int(float(resultReg[0]))), 'int')
+                else:    
+                    newReg = '%.' + str(self.counter)
+                    self.counter += 1
+                    if resultReg[1] == 'int':
+                        #set to float
+                        self.code += newReg + ' = sitofp i32 ' + resultReg[0] + ' to float\n'
+                        resultReg = (newReg, 'float')
+                    elif resultReg[1] == 'float':
+                        #set to int
+                        self.code += newReg + ' = fptosi float ' + resultReg[0] + ' to i32\n'
+                        resultReg = (newReg, 'int')
+
+            self.code += 'store ' + self.typeDict[element.type][0] + ' ' + resultReg[0] + ', ' + self.typeDict[element.type][0] 
+            self.code += '* ' + element.register[0] + ', align ' + str(self.typeDict[element.type][1]) + '\n'
+        else:
+            if node.children[-1].value == 'ARRAY_INIT':
+                for index, rhs in enumerate(node.children[-1].children):
+                    resultReg = self.getRegFromRHS(rhs)
+                    if resultReg[1] != element.type:
+                        resultReg = self.convertReg(resultReg[0], resultReg[1], element.type)
+
+                    ptr = '%.' + str(self.getNewCounter())
+                    self.code += ptr + ' = getelementptr inbounds [' + str(element.size) + ' x ' + str(self.typeDict[element.type][0]) + '], '
+                    self.code += '[' + str(element.size) + ' x ' + str(self.typeDict[element.type][0]) + ']* ' + element.register[0] + ', i64 0, i64 ' + str(index)+ '\n'
+
+                    self.code += 'store ' + self.typeDict[element.type][0] + ' ' + resultReg[0] + ', ' + self.typeDict[element.type][0] + '* ' + ptr + ', align '
+                    self.code += str(self.typeDict[element.type][1]) + '\n'
+
+            else:
+                resultReg = self.getRegFromRHS(node.children[-1])
+                if resultReg[1] != element.type:
+                    resultReg = self.convertReg(resultReg[0], resultReg[1], element.type)
+
+                ptr = '%.' + str(self.getNewCounter())
+                self.code += ptr + ' = getelementptr inbounds [' + str(element.size) + ' x ' + str(self.typeDict[element.type][0]) + '], '
+                self.code += '[' + str(element.size) + ' x ' + str(self.typeDict[element.type][0]) + ']* ' + element.register[0] + ', i64 0, i64 ' + str(node.var.size)+ '\n'
+                self.code += 'store ' + self.typeDict[element.type][0] + ' ' + resultReg[0] + ', ' + self.typeDict[element.type][0] + '* ' + ptr + ', align '
+                self.code += str(self.typeDict[element.type][1]) + '\n'
 
     def getRegFromRHS(self, node):
         operators = ['+', '-', '*', '/', '%']
@@ -134,12 +197,27 @@ class LLVM():
         
         elif isinstance(node, VarNode):
             element = self.currentScope.getElement(node.value, 'variable')
-            newReg = '%.' + str(self.getNewCounter())
-            self.code += newReg + ' = load ' + self.typeDict[element.register[1]][0] + ', ' + self.typeDict[element.register[1]][0]
-            self.code += '* ' + element.register[0] + ', align ' + str(self.typeDict[element.register[1]][1]) + '\n'
-                
-            return (newReg, element.register[1])
-        
+            if not element.isArray:
+                newReg = '%.' + str(self.getNewCounter())
+                self.code += newReg + ' = load ' + self.typeDict[element.register[1]][0] + ', ' + self.typeDict[element.register[1]][0]
+                self.code += '* ' + element.register[0] + ', align ' + str(self.typeDict[element.register[1]][1]) + '\n'
+                    
+                return (newReg, element.register[1])
+
+            else:
+                ptr = '%.' + str(self.getNewCounter())
+                self.code += ptr + ' = getelementptr inbounds [' + str(element.size) + ' x ' + str(self.typeDict[element.type][0]) + '], '
+                self.code += '[' + str(element.size) + ' x ' + str(self.typeDict[element.type][0]) + ']* ' + element.register[0] + ', i64 0, i64 ' + str(node.size)+ '\n'
+                newReg = '%.' + str(self.getNewCounter())
+
+                self.code += newReg + ' = load ' + self.typeDict[element.register[1]][0] + ', ' + self.typeDict[element.register[1]][0]
+                self.code += '* ' + ptr + ', align ' + str(self.typeDict[element.register[1]][1]) + '\n'
+                return (newReg, element.register[1])
+
+
+        elif isinstance(node, FuncCallNode):
+            return self.translateFuncCall(node)
+
         elif node.value in operators:
             leftOp = self.getRegFromRHS(node.leftOp)
             rightOp = self.getRegFromRHS(node.rightOp)
@@ -219,7 +297,7 @@ class LLVM():
 
             return resultReg
 
-    def translateSelection(self, node):
+    def translateSelection(self, node, endNumber, conditionNumber):
         ifLabel = {
             'labelTrue': self.getNewLabelCounter(),
             'labelFalse': None,
@@ -269,15 +347,15 @@ class LLVM():
         if elseLabel:
             elseLabel['labelEnd'] = endLabel
 
-        self.translateIf(node.ifStatement, ifLabel)
+        self.translateIf(node.ifStatement, ifLabel, endNumber, conditionNumber)
         for i in range(len(elIfLabels)):
-            self.translateElseIf(node.elseIfStatements[i], elIfLabels[i])
+            self.translateElseIf(node.elseIfStatements[i], elIfLabels[i], endNumber, conditionNumber)
         if elseLabel:
-            self.translateElse(node.elseStatement, elseLabel)
+            self.translateElse(node.elseStatement, elseLabel, endNumber, conditionNumber)
         
         self.code += '\nlabel' + str(endLabel) + ':\n'
 
-    def translateIf(self, node, labels):
+    def translateIf(self, node, labels, endNumber, conditionNumber):
         #create register with comparison result
         comparisonNode = node.condition.children[0]
         comparisonResult = self.getComparisonResult(comparisonNode)
@@ -288,11 +366,11 @@ class LLVM():
         #create label['true']
         self.code += '\nlabel' + str(labels['labelTrue']) + ':\n'
         #generate code inside the ifscope
-        self.createLLVM(node.block)
+        self.createLLVM(node.block, endNumber, conditionNumber)
         #br to labels['end']
         self.code += 'br label %' + 'label' + str(labels['labelEnd']) + '\n'
 
-    def translateElseIf(self, node, labels):
+    def translateElseIf(self, node, labels, endNumber, conditionNumber):
         #create label where the else if condition is being evaluated
         self.code += '\nlabel' + str(labels['labelCondition']) + ':\n'
 
@@ -306,15 +384,15 @@ class LLVM():
         #create label['true']
         self.code += '\nlabel' + str(labels['labelTrue']) + ':\n'
         #generate code inside the ifscope
-        self.createLLVM(node.block)
+        self.createLLVM(node.block, endNumber, conditionNumber)
         #br to labels['end']
         self.code += 'br label %' + 'label' + str(labels['labelEnd']) + '\n'
 
-    def translateElse(self, node, labels):
+    def translateElse(self, node, labels, endNumber, conditionNumber):
         #create label['true']
         self.code += '\nlabel' + str(labels['labelTrue']) + ':\n'
         #generate code inside the ifscope
-        self.createLLVM(node.block)
+        self.createLLVM(node.block, endNumber, conditionNumber)
         #br to labels['end']
         self.code += 'br label %' + 'label' + str(labels['labelEnd']) + '\n'
                
@@ -325,6 +403,10 @@ class LLVM():
     def getNewLabelCounter(self):
         self.labelCounter += 1
         return self.labelCounter-1
+    
+    def getNewStringCounter(self):
+        self.stringCounter += 1
+        return self.stringCounter-1
 
     def getComparisonResult(self, comparisonNode):
         
@@ -424,7 +506,7 @@ class LLVM():
         self.createLLVM(node.block, endLabel, conditionLabel)
         #add incrementor if its a for loop
         if increment:
-            self.createLLVM(increment)
+            self.createLLVM(increment, endLabel, conditionLabel)
         #at the end set a branch to the condition
         self.code += 'br label %' + 'label' + str(conditionLabel) + '\n'
 
@@ -435,7 +517,7 @@ class LLVM():
         self.createLLVM(node.initiator)
         self.translateWhile(node, node.increment)
 
-    def translateFuncDef(self, node):
+    def translateFuncDef(self, node, endNumber, conditionNumber):
         element = self.currentScope.getElement(node.name.value, 'function')
         arguments = element.arguments
         parametersTypes = ''
@@ -456,8 +538,16 @@ class LLVM():
             arguments[i].register = (newArgumentRegister, arguments[i].type)
 
         #generate code inside
-        self.createLLVM(node.body)
-
+        self.createLLVM(node.body, endNumber, conditionNumber)
+        
+        if element.returnType == 'void':
+            self.code += 'ret void'
+        elif element.returnType == 'int':
+            self.code += 'ret i32 0'
+        elif element.returnType == 'float':
+            self.code += 'ret float 0'
+        elif element.returnType == 'char':
+            self.code += 'ret i8 0'
         #close function
         self.code += '}\n'
 
@@ -500,3 +590,101 @@ class LLVM():
 
     def addBranch(self, labelNumber):
         self.code += 'br label %' + 'label' + str(labelNumber) + '\n'
+
+    def translateFuncCall(self, node):
+        result = '%.' + str(self.getNewCounter())
+        element = self.currentScope.getElement(node.name.value, 'function')
+        parameters = []
+        for index, parameter in enumerate(node.parameters.children):
+            paramReg = self.getRegFromRHS(parameter)
+            if element.arguments[index].type != paramReg[1]:
+                paramReg = self.convertReg(paramReg[0], paramReg[1], element.arguments[index].type)
+
+            parameters.append(paramReg)
+
+        parametersText = '('
+        for parameter in parameters:
+            parametersText += self.typeDict[parameter[1]][0] + ' ' + parameter[0] + ', '
+
+        if len(parametersText) > 1:
+            parametersText = parametersText[:-2] 
+        
+        parametersText += ')'
+        
+        if element.returnType == 'void':
+            self.code += 'call ' + self.typeDict[element.returnType][0] + ' @' + element.name + parametersText + '\n'
+        else:
+            self.code += result + ' = call ' + self.typeDict[element.returnType][0] + ' @' + element.name + parametersText + '\n'
+
+        return (result, element.returnType)
+    
+    def convertReg(self, regName, fromType, toType):
+        returnRegister = (regName, toType)
+        #2 CASES
+        ##regName is a number
+        if regName[0] not in ['%', '@']:
+            if toType == 'float':
+                returnRegister = (str(float(int(regName))), 'float')
+            elif toType == 'int':
+                returnRegister = (str(int(float(regName))), 'int')
+
+        ##RETURN REGISTER IS A VARIABLE
+        else:
+            newReg = '%.' + str(self.getNewCounter())
+
+            if fromType == 'int':
+                #set to float
+                self.code += newReg + ' = sitofp i32 ' + regName + ' to float\n'
+                returnRegister = (newReg, 'float')
+
+            elif fromType == 'float':
+                #set to int
+                self.code += newReg + ' = fptosi float ' + regName + ' to i32\n'
+                returnRegister = (newReg, 'int')
+
+        return returnRegister
+
+    def translatePrint(self, node):
+        if node.code == '"%s"':
+            newReg = '%.' + str(self.getNewCounter())
+            number = str(self.getNewStringCounter())
+            string = node.exp.value.replace('"', "")
+            size = str(len(string) + 1)
+            self.strCode += '@.str.' + number + ' = private unnamed_addr constant [' + size + ' x i8] c"' + string + '\\00", align 1\n'
+            self.code += newReg + " = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.strs, i32 0, i32 0), "
+            self.code += "i8* getelementptr inbounds ([" + size + " x i8], [" + size +" x i8]* @.str." + number + ", i32 0, i32 0))\n"
+
+        elif node.code == '"%i"':
+            newReg = '%.' + str(self.getNewCounter())
+            resultReg = self.getRegFromRHS(node.children[-1])
+
+            if resultReg[1] != 'int':
+                resultReg = self.convertReg(resultReg[0], resultReg[1], 'int')
+            self.code += newReg + " = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.stri, i32 0, i32 0), i32 " + resultReg[0] + ")\n"
+        
+        elif node.code == '"%d"':
+            newReg = '%.' + str(self.getNewCounter())
+
+            resultReg = self.getRegFromRHS(node.children[-1])
+            if resultReg[1] != 'int':
+                resultReg = self.convertReg(resultReg[0], resultReg[1], 'int')
+            self.code += newReg + " = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.strd, i32 0, i32 0), i32 " + resultReg[0] + ")\n"
+        
+        elif node.code == '"%f"':
+            newReg = '%.' + str(self.getNewCounter())
+            resultReg = self.getRegFromRHS(node.children[-1])
+            if resultReg[1] != 'float':
+                resultReg = self.convertReg(resultReg[0], resultReg[1], 'float')
+            if resultReg[0][0] in ['%', '@']:
+                temp = '%.' + str(self.getNewCounter())
+                self.code += temp + ' = fpext float ' + resultReg[0] + " to double\n"
+                resultReg = (temp, 'float')
+
+            self.code += newReg + " = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.strf, i32 0, i32 0), double " + resultReg[0] + ")\n"
+        
+        elif node.code == '"%c"':
+            newReg = '%.' + str(self.getNewCounter())
+            resultReg = self.getRegFromRHS(node.children[-1])
+            
+            self.code += newReg + " = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.strc, i32 0, i32 0), i8 " + resultReg[0] + ")\n"
+

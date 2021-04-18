@@ -34,3 +34,8 @@ from function.paramNode import ParamNode
 from function.returnNode import ReturnNode
 from scopes.programNode import ProgramNode
 from scopes.scopeNode import ScopeNode
+from function.printNode import PrintNode
+from variables.stringNode import StringNode
+from function.includeNode import IncludeNode
+from comparison.conditionNode import ConditionNode
+from variables.arrayInitNode import ArrayInitNode

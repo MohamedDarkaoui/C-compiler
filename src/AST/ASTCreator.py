@@ -30,8 +30,9 @@ class ASTCreator:
         root.constantFolding()
 
         #SEMANTIC ANALYZE
-        semanticAnalizer = SemanticAnalizer(self)
-        semanticAnalizer.analize(root)
+        ast = AST(root)
+        semanticAnalizer = SemanticAnalizer()
+        semanticAnalizer.analizeAST(ast)
 
         
         #RESET ASTCREATOR
@@ -39,7 +40,7 @@ class ASTCreator:
         self.queue_number = 0
         
         #RETURN AN AST WITH root AS ROOT
-        return AST(root)
+        return ast
     
     def generateCST(self, currentNode):
         """
@@ -65,7 +66,7 @@ class ASTCreator:
 
         #REMOVE USELESS NODES
         if fixNumber == 0:
-            uselessNodes = ['(', ')', ';', '=', '<EOF>', '{', '}','[',']', 'if', 'else', 'while',',','for', 'return']
+            uselessNodes = ['(', ')', ';', '=', '<EOF>', '{', '}','[',']', 'if', 'else', 'while',',','for', 'return', 'printf']
             for child in currentNode.children:
                 if child.value in uselessNodes:
                     currentNode.children.remove(child)
@@ -101,8 +102,7 @@ class ASTCreator:
 
         for child in currentNode.children:
             self.fixNode(child, fixNumber)
-
-        
+      
     def changeNode(self, currentNode):
         """
         Recursion function that replaces the nodes in the AST with the corresponding node object.
@@ -210,7 +210,23 @@ class ASTCreator:
         
         elif currentNode.value == "PROG":
             ProgramNode(currentNode)
+        
+        elif currentNode.value == "PRINTF":
+            PrintNode(currentNode)
+        
+        elif currentNode.value == "STRING":
+            StringNode(currentNode)
+            return
 
+        elif currentNode.value == "STDIO.H":
+            IncludeNode(currentNode)
+
+        elif currentNode.value == 'CONDITION':
+            ConditionNode(currentNode)
+
+        elif currentNode.value == 'ARRAY_INIT':
+            ArrayInitNode(currentNode)
+            
         elif currentNode.value in constTypes:
             ConstNode(currentNode)
 

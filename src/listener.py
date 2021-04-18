@@ -154,6 +154,17 @@ class Listener(GrammarListener):
     def enterNoIndexVariable(self, ctx):
         self.queue.append("VAR")
 
+    # Enter a parse tree produced by GrammarParser#printf.
+    def enterPrintf(self, ctx):
+        self.queue.append("PRINTF")
+    
+    def enterString(self, ctx):
+        self.queue.append("STRING")
+
+    # Enter a parse tree produced by GrammarParser#stdio.
+    def enterStdio(self, ctx):
+        self.queue.append("STDIO.H")
+
 
 class CErrorListener(ErrorListener):
     def syntaxError(self, recognizer, offendingSymbol, line, column, err, e):

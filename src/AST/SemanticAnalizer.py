@@ -2,9 +2,22 @@ from ..symbolTable import *
 from src.Nodes import *
 
 class SemanticAnalizer:
-    def __init__(self, root):
-        self.root = root
+    def __init__(self):
+        self.root = None
         self.currentScope = None
+        self.studioh = False
+        self.main = False
+
+    def analizeAST(self, AST):
+        self.root = AST.root
+        self.analize(self.root)
+        if not self.main:
+            raise Exception("Semantic Error: There isn't a main function.")
+
+        #RESET
+        self.currentScope = None
+        self.studioh = False
+        self.main = False
 
     def analize(self, currentNode):
         oldScope = self.currentScope
@@ -38,7 +51,10 @@ class SemanticAnalizer:
             self.checkNotExistence(currentNode.var.value , 'variable')
 
             #ADD UNINITIALIZED VARIABLE TO CURRENTSCOPE
-            newVariable = variable(node=currentNode.var, type=currentNode.type.value, init=False, const=False)
+            init = False
+            if currentNode.var.isArray:
+                init = True
+            newVariable = variable(node=currentNode.var, type=currentNode.type.value, init=init, const=False)
             self.currentScope.addElement(newVariable)
 
         elif isinstance(currentNode, DefNode):
@@ -46,6 +62,10 @@ class SemanticAnalizer:
             self.checkNotExistence(currentNode.var.value , 'variable')
 
             #CHECK OF THE RVALUE:
+            if currentNode.var.isArray:
+                if len(currentNode.rvalue.children) != currentNode.var.size:
+                    raise Exception('Semantic Error: Array ' + currentNode.var.value + ' is of size ' + str(currentNode.var.size) + ' but the initializator ' 
+                        + 'is of size ' + str(len(currentNode.rvalue.children)))
             self.analizeRHS(currentNode.rvalue, currentNode.type.value)
 
             #ADD INITIALIZED VARIABLE TO CURRENTSCOPE
@@ -55,7 +75,7 @@ class SemanticAnalizer:
         elif isinstance(currentNode, AssignNode):
             #CHECK THAT THE VARIABLE EXISTS IN THE CURRENT SCOPE
             self.checkExistence(currentNode.var.value, 'variable')
-
+            element = self.currentScope.getElement(currentNode.var.value, 'variable')
             #CHECK THAT THE VARIABLE ISN'T CONSTANT
             if self.currentScope.getElement(currentNode.var.value, 'variable').const:
                 raise Exception("Semantic Error: Variable " + currentNode.var.value + " is constant so its value cannot be changed.")
@@ -64,12 +84,20 @@ class SemanticAnalizer:
             self.analizeRHS(currentNode.rvalue, self.currentScope.getElement(currentNode.var.value, 'variable').type)
             
             #SPECIAL CASE IF ITS AN ARRAY
+            #CHECK INDEX < ARRAY SIZE (CASE ITS AN ARRAY)
+            if element.isArray:
+                if currentNode.var.size >= element.size:
+                    raise Exception('Semantic Error: Index is greater than the array size.')
 
             #CHECK WRONG ASSIGN VARIABLE/ARRAY
             element = self.currentScope.getElement(currentNode.var.value, 'variable')
             if element.isArray != currentNode.var.isArray:
                 raise Exception('Variable ' + element.name + ' is an array.')
             
+            #ARRAY CASE
+            if element.isArray != currentNode.var.isArray:
+                raise Exception('Semantic Error: ' + element.name + ' is an array.')
+
             #CHECK INDEX < ARRAY SIZE (CASE ITS AN ARRAY)
             if element.isArray:
                 if currentNode.var.size >= element.size:
@@ -79,13 +107,24 @@ class SemanticAnalizer:
             self.currentScope.getElement(currentNode.var.value, 'variable').init = True
         
         elif isinstance(currentNode, FuncDefNode):
+            if not isinstance(self.currentScope, global_scope):
+                raise Exception("Semantic error: Function definition not inside of a global scope.")
+        
             #RETRIEVE DATA
             returnType = currentNode.type.value
             name = currentNode.name.value
+            if name == 'main':
+                self.main = True
+
             arguments = []
             for argument in currentNode.arguments.children:
                 arguments.append(variable(node=argument.var, type=argument.type.value, init=True, const=False))
             
+            for argument in arguments:
+                for argument2 in arguments:
+                    if argument.name == argument2.name and argument != argument2:
+                        raise Exception('Semantic Error: Redefinition of argument ' + argument.name)
+
             #CHECK EXISTENCE
             self.checkNotExistence(name, 'function')
 
@@ -131,13 +170,27 @@ class SemanticAnalizer:
                 if isinstance(currentNode, BreakNode):
                     raise Exception("Semantic error: break statement outside a loop scope.")
                 raise Exception("Semantic error: continue statement outside a loop scope.")
+        
+        elif isinstance(currentNode, PrintNode):
+            if not self.studioh:
+                raise Exception("Semantic error: unknown function printf.")
+        
+        elif isinstance(currentNode, IncludeNode):
+            if currentNode.value == '<studio.h>':
+                self.studioh = True
+
+        elif isinstance(currentNode, ConditionNode):
+            self.analizeCondition(currentNode)
+
+        if isinstance(currentNode, PrintNode):
+            self.analizePrint(currentNode)
+
 
         for child in currentNode.children:
             self.analize(child)
             if oldScope is not None:
                 self.currentScope = oldScope
     
-
     def analizeRHS(self, currentNode, type):
         if isinstance(currentNode, VarNode):                # VARIABLES
             #EXISTENCE CHECKING
@@ -156,12 +209,15 @@ class SemanticAnalizer:
             
             #SPECIAL CASE ARRAY
             if element.isArray != currentNode.isArray:
-                raise Exception('Variable ' + element.name + ' is an array.')
+                if element.isArray:
+                    raise Exception('Semantic Error: ' + element.name + ' is an array.')
+                else:
+                    raise Exception('Semantic Error: ' + element.name + ' is not an array.')
             
             #CHECK INDEX < ARRAY SIZE (CASE ITS AN ARRAY)
             if element.isArray:
                 if currentNode.size >= element.size:
-                    raise Exception('Index is greater than the array size.')
+                    raise Exception('Semantic Error: Index is greater than the array size.')
 
         elif isinstance(currentNode, FuncCallNode):         # FUNCTION CALLS
             # ANALIZE FUNCTION
@@ -175,7 +231,7 @@ class SemanticAnalizer:
                 if type in ['int', 'float']:
                     raise Exception("Semantic Error: Variable " + currentNode.name.value + " is of type " + returnType + ' but it should be of type int or float.')
             elif returnType == 'void':
-                raise Exception()
+                raise Exception("Semantic Error:")
 
         elif isinstance(currentNode, ConstNode):            # CONSTANTS (int, float, char)
             if currentNode.type in ['int', 'float']:
@@ -228,22 +284,83 @@ class SemanticAnalizer:
         element = self.currentScope.getElement(name, type)
         if not element.init:
             raise Exception("Semantic Error: Variable " + name + " isn't initialized.")
-
-    
+  
     def analizeCondition(self, node):
-        leftOp = node.leftOp
-        rightOp = node.rightOp
+        leftOp = node.comparison.leftOp
+        rightOp = node.comparison.rightOp
         
         #CHECK IF ITS A CHARACTERS COMPARISON
-        if isinstance(leftOp, ConstNode) and leftOp.type == 'char':
-            pass
+        if isinstance(leftOp, ConstNode):
+            if leftOp.type == 'char':
+                self.analizeRHS(rightOp, 'char')
+
+            elif leftOp.type in ['int','float']:
+                self.analizeRHS(rightOp, 'int')
+
+        elif isinstance(leftOp, VarNode):
+            element = self.currentScope.getElement(leftOp.value, 'variable')
+            if not element:
+                raise Exception('Semantic Error')
+            self.analizeRHS(rightOp, element.type)
+
+        elif isinstance(leftOp, FuncCallNode):
+            element = self.currentScope.getElement(leftOp.name.value, 'function')
+            if not element:
+                raise Exception('Semantic Error')
+            self.analizeRHS(rightOp, element.returnType)
+        else:
+            self.analizeRHS(leftOp, 'float')
+            self.analizeRHS(rightOp, 'float')
 
 
-        #CHECK IF ITS A NUMBERS COMPARISON
+        #CHECK IF ITS A CHARACTERS COMPARISON
+        if isinstance(rightOp, ConstNode):
+            if rightOp.type == 'char':
+                self.analizeRHS(leftOp, 'char')
 
-        #12/04/2021
-        ## TO DO:
+            elif rightOp.type in ['int','float']:
+                self.analizeRHS(leftOp, 'int')
 
-        # - ARRAY CHECKING
-        # - CONDITION CHEKING
+        elif isinstance(rightOp, VarNode):
+            element = self.currentScope.getElement(rightOp.value, 'variable')
+            if not element:
+                raise Exception('Semantic Error')
+            self.analizeRHS(leftOp, element.type)
+
+        elif isinstance(rightOp, FuncCallNode):
+            element = self.currentScope.getElement(rightOp.name.value, 'function')
+            if not element:
+                raise Exception('Semantic Error')
+            self.analizeRHS(leftOp, element.returnType)
+        else:
+            self.analizeRHS(rightOp, 'float')
+            self.analizeRHS(leftOp, 'float')
+        
+    def analizePrint(self, node):
+        if node.code == "\"%s\"":
+            if not isinstance(node.exp, StringNode):
+                raise Exception("Semantic Error: ")
+        elif node.code == "\"%f\"":
+            if isinstance(node.exp, StringNode):
+                raise Exception("Semantic Error")
+
+            self.analizeRHS(node.exp, 'float')
+
+        elif node.code == "\"%i\"":
+            if isinstance(node.exp, StringNode):
+                raise Exception("Semantic Error")
+            self.analizeRHS(node.exp, 'int')
+
+        elif node.code == "\"%d\"":
+            if isinstance(node.exp, StringNode):
+                raise Exception("Semantic Error")
+            self.analizeRHS(node.exp, 'int')
+
+        elif node.code == "\"%c\"":
+            if isinstance(node.exp, StringNode):
+                raise Exception("Semantic Error")
+            
+            self.analizeRHS(node.exp, 'char')
+
+
     

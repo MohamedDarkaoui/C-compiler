@@ -25,7 +25,7 @@ class AST:
         dot = ''
         for child in currentNode.children:
             self.count += 1
-            dot += str(self.count) + '[label="' + str(child) + '"]\n'
+            dot += str(self.count) + '[label="' + str(child).replace('"', "") + '"]\n'
             dot += str(parentCount) + "->" + str(self.count) + "\n"
             dot += self.generateDot(child)
     

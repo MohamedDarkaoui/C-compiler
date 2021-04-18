@@ -21,7 +21,6 @@ LB: '{';
 RB: '}';
 LSB: '[';
 RSB: ']';
-
 PLUS: '+';
 MINUS: '-';
 TIMES: '*';
@@ -37,9 +36,7 @@ ASSIGN: '=';
 SEMICOLON: ';';
 POINT: '.';
 AMPERSAND: '&';
-signed_int: (PLUS | MINUS |) UNSIGNED_INT;
 UNSIGNED_INT: [0-9]+;
-float_number: (PLUS | MINUS |) UNSIGNED_INT POINT UNSIGNED_INT;
 DIGIT: [0-9];
 WS: [ \n\t\r]+ -> skip;
 CONST: 'const';
@@ -49,24 +46,35 @@ CHAR: 'char';
 FLOAT: 'float';
 VOID: 'void';
 RETURN: 'return';
+PRINTF: 'printf';
+STDIO: '#include <stdio.h>';
+CODE: '"%d"' | '"%i"'| '"%s"'| '"%f"' | '"%c"';
+STRING: '"' .*? '"';
+ID: [_a-zA-Z][_a-zA-Z0-9]*;
+CHARACTER: '\'' . '\'';
+COMMA: ',';
+
+
+
+printf: PRINTF LP CODE COMMA (expression|string) RP SEMICOLON; 
+string: STRING;
+signed_int: (PLUS | MINUS |) UNSIGNED_INT;
+float_number: (PLUS | MINUS |) UNSIGNED_INT POINT UNSIGNED_INT;
 types: INT | CHAR | FLOAT;
 function_types: types | VOID;
-ID: [_a-zA-Z][_a-zA-Z0-9]*;
 variable: ID index*?;
 noIndexVariable: ID;
-CHARACTER: '\'' . '\'';
 character : CHARACTER;
-COMMA: ',';
 arg: types variable;
 arguments : ((arg) (COMMA arg)*)?;
 parameters: ((expression) (COMMA expression)*)?;
 index : LSB UNSIGNED_INT RSB;
 
 
-statement: definition | declaration | assignment | selection_sequence | while_statement | 
+statement: definition | declaration | assignment | selection_sequence | while_statement | stdio | printf |
 function_definition | for_statement | unnamed_scope | break_statement | continue_statement | function_call SEMICOLON | return_statement;
 
-
+stdio: STDIO;
 declaration: types variable SEMICOLON;
 definition: CONST? types  variable ASSIGN  expression SEMICOLON | CONST? types  variable ASSIGN array_initializator SEMICOLON;
 assignment:  variable ASSIGN expression SEMICOLON;
@@ -82,10 +90,12 @@ break_statement: BREAK SEMICOLON;
 continue_statement: CONTINUE SEMICOLON;
 return_statement: RETURN expression? SEMICOLON;
 for_statement: FOR LP (definition|assignment) condition SEMICOLON for_assignment RP LB block RB;
-array_initializator: LB (expression (COMMA expression)*)? RB; 
+array_initializator: LB (expression (COMMA expression)*)? RB;
+
 
 block: statement*?;
 unnamed_scope: LB statement*? RB;
+
 
 expression: arithmetic_expression | character;
 arithmetic_expression:

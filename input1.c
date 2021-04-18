@@ -1,8 +1,15 @@
-int mul(int x, int y) {
-    float b  = x*y;
-    return b;
+#include <stdio.h>
+
+
+int fibonacci(int x) {
+    if (x < 2) {
+        return x;
+    }
+    return fibonacci(x-1) + fibonacci(x-2);
 }
 
 int main() {
+    int c = fibonacci(6);
+    printf("%i", c);
     return 0;
 }

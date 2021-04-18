@@ -8,6 +8,8 @@ class BreakNode(Node):
 
     def changeAttributes(self):
         self.children = []
+        index = self.parent.children.index(self)
+        self.parent.children = self.parent.children[:index+1]
         for child in self.children:
             child.changeAttributes()
 
