@@ -1,25 +1,3 @@
-"""
-example: 
-
-int a = 3;
-if (x > 2) {
-    int b = 3;
-}
-char b = 'b'
-{
-    float c;
-}
-=====>
-
-global_scope:
-    variable: a
-    if_scope:
-        variable: b    
-    variable: b
-    unnamed_scope:
-        variable: c
-"""
-
 
 class variable:
     def __init__(self, node, type, init, const, register=None):

@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 // This should print the number 10 for each basic operation (int and float)
-int main(){
+int main() {
         printf("%d", 5+5);
         printf("%s", "; ");
         printf("%f", 4.5+5.5);

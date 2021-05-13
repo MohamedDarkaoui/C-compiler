@@ -2,7 +2,7 @@
 from antlr4 import *
 from antlr4.error.ErrorListener import ErrorListener
 import sys
-#sys.tracebacklimit = 0
+sys.tracebacklimit = 0
 
 
 
