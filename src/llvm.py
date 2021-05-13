@@ -214,7 +214,6 @@ class LLVM():
                 self.code += '* ' + ptr + ', align ' + str(self.typeDict[element.register[1]][1]) + '\n'
                 return (newReg, element.register[1])
 
-
         elif isinstance(node, FuncCallNode):
             return self.translateFuncCall(node)
 

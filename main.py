@@ -5,6 +5,7 @@ from GrammarParser import GrammarParser
 from src.listener import Listener, CErrorListener
 from src.AST.ASTCreator import ASTCreator
 from src.llvm import LLVM
+from src.mips import MIPS
 
 def main(argv):
     input_stream = FileStream(argv[1])
@@ -21,8 +22,11 @@ def main(argv):
     ast = astcreator.generateAST()
     ast.dot("treeGraph")
 
-    llvmgenerator = LLVM(ast)
-    llvmgenerator.toLLVM('llvm.ll')
+    #llvmgenerator = LLVM(ast)
+    #llvmgenerator.toLLVM('llvm.mips')
+
+    mipsgenator = MIPS(ast)
+    mipsgenator.toMIPS('mips.asm')
 
 if __name__ == '__main__':
     main(sys.argv)
