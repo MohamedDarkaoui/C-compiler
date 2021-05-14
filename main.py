@@ -23,7 +23,7 @@ def main(argv):
     ast.dot("treeGraph")
 
     #llvmgenerator = LLVM(ast)
-    #llvmgenerator.toLLVM('llvm.mips')
+    #llvmgenerator.toLLVM('llvm.ll')
 
     mipsgenator = MIPS(ast)
     mipsgenator.toMIPS('mips.asm')

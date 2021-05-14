@@ -15,12 +15,12 @@ class Function:
         self.init = init
         self.arguments = arguments
         self.returnType = returnType
-        
+   
 class scope:
     def __init__(self, parentScope = None):
         self.parentScope = parentScope
         self.symbolTable = []
-
+        
     def addElement(self, element):
         self.symbolTable.append(element)
     
@@ -37,6 +37,7 @@ class scope:
 
     def isInScope(self, name, type):
         allElements = self.getAllElements()
+
 
         if type == 'variable':
             for element in allElements:

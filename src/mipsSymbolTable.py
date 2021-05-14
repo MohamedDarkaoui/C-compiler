@@ -14,8 +14,38 @@ class scope:
     def __init__(self, parentScope = None):
         self.parentScope = parentScope
         self.symbolTable = []
-        self.offsetFree = 4
-        self.offsetParent = None
+        self.offsetFree = 0
+        self.registers = {}
+        self.floatRegisters = {}
+        self.resetRegisters()
+                
+    def resetRegisters(self):
+        for i in range(32):
+            self.floatRegisters['$f' + str(i)] = False
+            if i <=9:
+                self.registers['$t' + str(i)] = False
+            if i <= 7:
+                self.registers['$s' + str(i)] = False
+
+    def getFreeRegister(self, float):
+        if float:
+            for register in self.floatRegisters:
+                if not self.floatRegisters[register]:
+                    self.setFloatRegister(register, True)
+                    return register
+        else:
+            for register in self.registers:
+                if not self.registers[register]:
+                    self.setRegister(register, True)
+                    return register
+
+        return None
+
+    def setRegister(self, register, used):
+        self.registers[register] = used
+    
+    def setFloatRegister(self, register, used):
+        self.floatRegisters[register] = used
 
     def addElement(self, element):
         self.symbolTable.append(element)
@@ -52,7 +82,7 @@ class scope:
             return element.offset
         
         else:
-            return self.parentScope.getElementOffSet(self, element) - self.offsetParent
+            return self.parentScope.getElementOffSet(element) - self.parentScope.offsetFree
 
 
 

@@ -39,7 +39,7 @@ class LLVM():
         self.currentScope = None
         self.root = root
 
-    def createLLVM(self, currentNode, endNumber=None, conditionNumber=None):
+    def createLLVM(self, currentNode, endNumber=None, conditionNumber=None, incrementor=None):
         oldScope = self.currentScope
         if isinstance(currentNode, ScopeNode):
             #CREATE GLOBAL SCOPE
@@ -69,7 +69,7 @@ class LLVM():
         elif isinstance(currentNode, AssignNode):
             self.translateAssignment(currentNode)
         elif isinstance(currentNode, SelectNode):
-            self.translateSelection(currentNode, endNumber, conditionNumber)
+            self.translateSelection(currentNode, endNumber, conditionNumber, incrementor)
         elif isinstance(currentNode, WhileNode):
             self.translateWhile(currentNode)
         elif isinstance(currentNode, ForNode):
@@ -87,12 +87,13 @@ class LLVM():
             self.currentScope.addElement(newFunction)
             self.currentScope = func_scope(self.currentScope, arguments, returnType)
             oldScope = self.currentScope
-            self.translateFuncDef(currentNode, endNumber, conditionNumber)
+            self.translateFuncDef(currentNode, endNumber, conditionNumber, incrementor)
         elif isinstance(currentNode, ReturnNode):
             self.translateReturn(currentNode)
         elif isinstance(currentNode, BreakNode):
             self.addBranch(endNumber)
         elif isinstance(currentNode, ContinueNode):
+            self.createLLVM(incrementor,endNumber,conditionNumber,incrementor)
             self.addBranch(conditionNumber)
         elif isinstance(currentNode, FuncCallNode):
             self.translateFuncCall(currentNode)
@@ -104,7 +105,7 @@ class LLVM():
 
         else:
             for child in currentNode.children:
-                self.createLLVM(child, endNumber, conditionNumber)
+                self.createLLVM(child, endNumber, conditionNumber, incrementor)
                 if oldScope is not None:
                     self.currentScope = oldScope
     
@@ -296,7 +297,7 @@ class LLVM():
 
             return resultReg
 
-    def translateSelection(self, node, endNumber, conditionNumber):
+    def translateSelection(self, node, endNumber, conditionNumber, incrementor):
         ifLabel = {
             'labelTrue': self.getNewLabelCounter(),
             'labelFalse': None,
@@ -346,15 +347,15 @@ class LLVM():
         if elseLabel:
             elseLabel['labelEnd'] = endLabel
 
-        self.translateIf(node.ifStatement, ifLabel, endNumber, conditionNumber)
+        self.translateIf(node.ifStatement, ifLabel, endNumber, conditionNumber, incrementor)
         for i in range(len(elIfLabels)):
-            self.translateElseIf(node.elseIfStatements[i], elIfLabels[i], endNumber, conditionNumber)
+            self.translateElseIf(node.elseIfStatements[i], elIfLabels[i], endNumber, conditionNumber, incrementor)
         if elseLabel:
-            self.translateElse(node.elseStatement, elseLabel, endNumber, conditionNumber)
+            self.translateElse(node.elseStatement, elseLabel, endNumber, conditionNumber, incrementor)
         
         self.code += '\nlabel' + str(endLabel) + ':\n'
 
-    def translateIf(self, node, labels, endNumber, conditionNumber):
+    def translateIf(self, node, labels, endNumber, conditionNumber, incrementor):
         #create register with comparison result
         comparisonNode = node.condition.children[0]
         comparisonResult = self.getComparisonResult(comparisonNode)
@@ -365,11 +366,11 @@ class LLVM():
         #create label['true']
         self.code += '\nlabel' + str(labels['labelTrue']) + ':\n'
         #generate code inside the ifscope
-        self.createLLVM(node.block, endNumber, conditionNumber)
+        self.createLLVM(node.block, endNumber, conditionNumber, incrementor)
         #br to labels['end']
         self.code += 'br label %' + 'label' + str(labels['labelEnd']) + '\n'
 
-    def translateElseIf(self, node, labels, endNumber, conditionNumber):
+    def translateElseIf(self, node, labels, endNumber, conditionNumber, incrementor):
         #create label where the else if condition is being evaluated
         self.code += '\nlabel' + str(labels['labelCondition']) + ':\n'
 
@@ -383,15 +384,15 @@ class LLVM():
         #create label['true']
         self.code += '\nlabel' + str(labels['labelTrue']) + ':\n'
         #generate code inside the ifscope
-        self.createLLVM(node.block, endNumber, conditionNumber)
+        self.createLLVM(node.block, endNumber, conditionNumber, incrementor)
         #br to labels['end']
         self.code += 'br label %' + 'label' + str(labels['labelEnd']) + '\n'
 
-    def translateElse(self, node, labels, endNumber, conditionNumber):
+    def translateElse(self, node, labels, endNumber, conditionNumber, incrementor):
         #create label['true']
         self.code += '\nlabel' + str(labels['labelTrue']) + ':\n'
         #generate code inside the ifscope
-        self.createLLVM(node.block, endNumber, conditionNumber)
+        self.createLLVM(node.block, endNumber, conditionNumber, incrementor)
         #br to labels['end']
         self.code += 'br label %' + 'label' + str(labels['labelEnd']) + '\n'
                
@@ -502,10 +503,11 @@ class LLVM():
         #create while label
         self.code += '\nlabel' + str(trueLabel) + ':\n'
         #generate while_scope code inside while label
-        self.createLLVM(node.block, endLabel, conditionLabel)
+        self.createLLVM(node.block, endLabel, conditionLabel, increment)
         #add incrementor if its a for loop
         if increment:
-            self.createLLVM(increment, endLabel, conditionLabel)
+            self.createLLVM(increment, endLabel, conditionLabel, increment)
+        
         #at the end set a branch to the condition
         self.code += 'br label %' + 'label' + str(conditionLabel) + '\n'
 
@@ -516,7 +518,7 @@ class LLVM():
         self.createLLVM(node.initiator)
         self.translateWhile(node, node.increment)
 
-    def translateFuncDef(self, node, endNumber, conditionNumber):
+    def translateFuncDef(self, node, endNumber, conditionNumber, incrementor):
         element = self.currentScope.getElement(node.name.value, 'function')
         arguments = element.arguments
         parametersTypes = ''
@@ -537,7 +539,7 @@ class LLVM():
             arguments[i].register = (newArgumentRegister, arguments[i].type)
 
         #generate code inside
-        self.createLLVM(node.body, endNumber, conditionNumber)
+        self.createLLVM(node.body, endNumber, conditionNumber, incrementor)
         
         if element.returnType == 'void':
             self.code += 'ret void'
