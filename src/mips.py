@@ -24,8 +24,7 @@ class MIPS():
         self.code = ""
         self.root = root
 
-
-    def createMIPS(self, currentNode, endLabel=None, loopLabel=None, incrementor=None):
+    def createMIPS(self, currentNode, endLabel=None, loopLabel=None, incrementor=None, ifLabels=None):
         oldScope = self.currentScope
         if isinstance(currentNode, ScopeNode):
             if currentNode.value == 'global_scope':
@@ -35,27 +34,7 @@ class MIPS():
             elif currentNode.value == 'unnamed_scope':
                 self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
                 self.currentScope = unnamed_scope(self.currentScope)
-                oldScope = self.currentScope
-
-            elif currentNode.value == 'if_scope':
-                self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
-                self.currentScope = if_scope(self.currentScope)
-                oldScope = self.currentScope
-
-            elif currentNode.value == 'elif_scope':
-                self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
-                self.currentScope = elif_scope(self.currentScope)
-                oldScope = self.currentScope
-
-            elif currentNode.value == 'else_scope':
-                self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
-                self.currentScope = else_scope(self.currentScope)
-                oldScope = self.currentScope
-
-            elif currentNode.value == 'while_scope':
-                self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
-                self.currentScope = while_scope(self.currentScope)
-                oldScope = self.currentScope
+                oldScope = self.currentScope                
 
         if isinstance(currentNode, DecNode):
             """
@@ -79,7 +58,26 @@ class MIPS():
         elif isinstance(currentNode, SelectNode):
             self.translateSelection(currentNode, endLabel, loopLabel, incrementor)
 
+        elif isinstance(currentNode, IfNode):
+            self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
+            self.currentScope = if_scope(self.currentScope)
+            oldScope = self.currentScope
+            self.translateIf(currentNode, ifLabels, endLabel, loopLabel, incrementor)
+        
+        elif isinstance(currentNode, ElseIfNode):
+            self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
+            self.currentScope = elif_scope(self.currentScope)
+            self.translateElseIf(currentNode, ifLabels, endLabel, loopLabel, incrementor)
+
+        elif isinstance(currentNode, ElseNode):
+            self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
+            self.currentScope = else_scope(self.currentScope)
+            self.translateElse(currentNode, ifLabels, endLabel, loopLabel, incrementor)
+
         elif isinstance(currentNode, WhileNode):
+            self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
+            self.currentScope = while_scope(self.currentScope)
+            oldScope = self.currentScope
             self.translateWhile(currentNode)
         
         elif isinstance(currentNode, ForNode):
@@ -120,7 +118,6 @@ class MIPS():
         
         """
         
-
     def translateDeclaration(self, node):
         """
         - create variable
@@ -202,11 +199,11 @@ class MIPS():
         if elseLabel:
             elseLabel['labelEnd'] = endLabel
 
-        self.translateIf(node.ifStatement, ifLabel, labelEnd, labelLoop, incrementor)
+        self.createMIPS(node.ifStatement,  labelEnd, labelLoop, incrementor, ifLabel)
         for i in range(len(elIfLabels)):
-            self.translateElseIf(node.elseIfStatements[i], elIfLabels[i], labelEnd, labelLoop, incrementor)
+            self.createMIPS(node.elseIfStatements[i], labelEnd, labelLoop, incrementor, elIfLabels[i])
         if elseLabel:
-            self.translateElse(node.elseStatement, elseLabel, labelEnd, labelLoop, incrementor)
+            self.createMIPS(node.elseStatement,  labelEnd, labelLoop, incrementor, elseLabel)
         
         self.code += '\n' + endLabel + ':\n'
     

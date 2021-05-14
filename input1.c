@@ -2,11 +2,12 @@
 #include <stdio.h>
 
 int main() {
-   float x = 12;
    for (int i = 0; i < 10; i = i+1) {
-      int b = 2;
-      if (i == 5) {
-         printf("%i", i);
+      for (int x = 0; x < 10; x = x+1) {
+         printf("%i", x*i);
+         printf("%s", "   ");
       }
+      printf("%s", "\n");
+
    }
 }

@@ -1,0 +1,2 @@
+./clearAntlr.sh
+./clearCache.sh
