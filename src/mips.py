@@ -59,18 +59,24 @@ class MIPS():
             self.translateSelection(currentNode, endLabel, loopLabel, incrementor)
 
         elif isinstance(currentNode, IfNode):
+            #create label
+            self.code += '\n' + ifLabels['label'] + ':\n'
             self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
             self.currentScope = if_scope(self.currentScope)
             oldScope = self.currentScope
             self.translateIf(currentNode, ifLabels, endLabel, loopLabel, incrementor)
         
         elif isinstance(currentNode, ElseIfNode):
-            self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
+            #create label
+            self.code += '\n' + ifLabels['label'] + ':\n'
+            #self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
             self.currentScope = elif_scope(self.currentScope)
             self.translateElseIf(currentNode, ifLabels, endLabel, loopLabel, incrementor)
 
         elif isinstance(currentNode, ElseNode):
-            self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
+            #create label
+            self.code += '\n' + ifLabels['label'] + ':\n'
+            #self.code += '\taddi $sp, $sp, ' + str(-self.currentScope.offsetFree) + '\n'
             self.currentScope = else_scope(self.currentScope)
             self.translateElse(currentNode, ifLabels, endLabel, loopLabel, incrementor)
 
@@ -96,27 +102,37 @@ class MIPS():
             if incrementor:
                 self.createMIPS(incrementor, endLabel, loopLabel, incrementor)
             self.addJump(loopLabel)
+        
+        elif isinstance(currentNode, FuncDefNode):
+            returnType = currentNode.type.value
+            name = currentNode.name.value
+            arguments = []
+            offset = 0
+            for argument in currentNode.arguments.children:
+                arguments.append(variable(argument.var.value, argument.type.value, offset))
+                offset+=4
+            newFunction = function(name, arguments, returnType)
+            self.currentScope.addElement(newFunction)
+            self.currentScope = func_scope(self.currentScope, arguments, returnType)
+            self.currentScope.offsetFree = offset
+            oldScope = self.currentScope
+            self.translateFuncDef(currentNode)
+
+        elif isinstance(currentNode, FuncCallNode):
+            self.translateFuncCall(currentNode)
+        
+        elif isinstance(currentNode, ReturnNode):
+            pass
+            #self.translateReturn(currentNode)
 
         else:
             for child in currentNode.children:
                 self.createMIPS(child, endLabel, loopLabel, incrementor)
                 if oldScope is not None:
                     if self.currentScope != oldScope:
-                        self.code += '\taddi $sp, $sp, ' + str(oldScope.offsetFree) + '\n'
+                        if not isinstance(self.currentScope, func_scope):
+                            self.code += '\taddi $sp, $sp, ' + str(oldScope.offsetFree) + '\n'
                     self.currentScope = oldScope
-
-        """
-        
-        elif isinstance(currentNode, FuncDefNode):
-            pass
-
-        elif isinstance(currentNode, ReturnNode):
-            pass
-
-        elif isinstance(currentNode, FuncCallNode):
-            pass
-        
-        """
         
     def translateDeclaration(self, node):
         """
@@ -208,9 +224,6 @@ class MIPS():
         self.code += '\n' + endLabel + ':\n'
     
     def translateIf(self, node, labels, labelEnd, labelLoop, incrementor):
-        #create label
-        self.code += '\n' + labels['label'] + ':\n'
-
         #generate condition
         comparisonNode = node.condition.children[0]
         comparisonResult = self.getComparisonResult(comparisonNode)
@@ -229,9 +242,6 @@ class MIPS():
         self.addJump(labels['labelEnd'])
 
     def translateElseIf(self, node, labels, labelEnd, labelLoop, incrementor):
-        #create label
-        self.code += '\n' + labels['label'] + ':\n'
-
         #generate condition
         comparisonNode = node.condition.children[0]
         comparisonResult = self.getComparisonResult(comparisonNode)
@@ -249,9 +259,6 @@ class MIPS():
         self.addJump(labels['labelEnd'])
 
     def translateElse(self, node, labels, labelEnd, labelLoop, incrementor):
-        #create label
-        self.code += '\n' + labels['label'] + ':\n'
-
         #generate code inside
         self.createMIPS(node.block, labelEnd, labelLoop, incrementor)
 
@@ -309,7 +316,7 @@ class MIPS():
         elif node.code == '"%d"' or node.code == '"%f"':
             resultReg = self.getRegFromRHS(node.children[-1], 'float')
             self.code += '\tli $v0, 2\n'
-            self.code += '\tmove $f12, ' + resultReg[0] + '\n'
+            self.code += '\tmov.s $f12, ' + resultReg[0] + '\n'
             self.code += '\tsyscall\n'
             self.currentScope.setFloatRegister(resultReg[0], False)
 
@@ -320,10 +327,113 @@ class MIPS():
             self.code += '\tsyscall\n'
             self.currentScope.setRegister(resultReg[0], False)
     
-    def addJump(self, label):
-        self.code += '\tj ' + label + '\n'
+    def translateFuncDef(self, node):
+        element = self.currentScope.findElement(node.name.value, 'function')
+        self.code += element.name + ':\n'
+
+        if element.name != 'main':
+            offset = self.currentScope.getFreeSpace()
+            self.code += '\tsw $ra, ' + str(-offset) + '($sp)\n'
+            returnAdress = variable('$ra', 'returnAdress', offset)
+            self.currentScope.addElement(returnAdress)
+
+        #GENERATE CODE INSIDE
+        self.createMIPS(node.body)
+
+        if element.name != 'main':
+            #JUMP BACK IF RETURN NOT ACCESED
+            self.code += '\tlw $ra, ' + str(-offset) + '($sp)\n'
+            self.code += '\tjr $ra\n'
+    
+    def translateFuncCall(self, node):
+        element = self.currentScope.findElement(node.name.value, 'function')
+
+        offsetSave = 0
+        #FIRST SAVE THE REGISTERS THAT ARE BEING USED
+        for register in self.currentScope.registers:
+            if self.currentScope.registers[register]:
+                self.code += "\tsw " + register + ", " + str(-(self.currentScope.offsetFree + offsetSave)) +  "($sp)\n"
+                offsetSave += 4
+
+        for register in self.currentScope.floatRegisters:
+            if self.currentScope.floatRegisters[register]:
+                self.code += "\ts.s " + register + ", " + str(-(self.currentScope.offsetFree + offsetSave)) +  "($sp)\n"
+                offsetSave += 4        
+
+        #LOAD PARAMETERS IN MEMORY
+        offset = 0
+        for index, parameter in enumerate(node.parameters.children):
+            resultReg = self.getRegFromRHS(parameter, element.arguments[index].type)
+            if element.arguments[index].type == "int":
+                self.code += "\tsw " + resultReg[0] + ", " + str(-(self.currentScope.offsetFree + offsetSave + offset)) +  "($sp)\n"
+                self.currentScope.setRegister(resultReg[0], False)
+            elif element.arguments[index].type == "float":
+                self.code += "\ts.s " + resultReg[0] + ", " + str(-(self.currentScope.offsetFree + offsetSave + offset)) +  "($sp)\n"
+                self.currentScope.setFloatRegister(resultReg[0], False)
+            elif element.arguments[index].type == "char":
+                self.code += "\tsb " + resultReg[0] + ", " + str(-(self.currentScope.offsetFree + offsetSave + offset)) +  "($sp)\n"
+                self.currentScope.setRegister(resultReg[0], False)
+            offset += 4
+
+        #add sp for function
+        self.code += '\taddi $sp, $sp, ' + str(-(self.currentScope.offsetFree + offsetSave)) + '\n'
+
+
+        #CALL FUNCTION
+        self.code += '\tjal ' + element.name + '\n'
+        #SET SP BACK
+        self.code += '\taddi $sp, $sp, ' + str(self.currentScope.offsetFree + offsetSave) + '\n'
+        
+        #GET RESULT
+        resultReg = 0
+        if element.returnType in ['int', 'char']:
+            resultReg = self.currentScope.getFreeRegister(False)
+            self.code += '\tmove ' + resultReg + ', $v0\n'
+        elif element.returnType == 'float':
+            resultReg = self.currentScope.getFreeRegister(True)
+            self.code += '\tmov.s ' + resultReg + ', $f1\n'
+        else:
+            pass
+
+        #SET REGISTERS BACK
+        offsetSave = 0
+        for register in self.currentScope.registers:
+            if self.currentScope.registers[register] and register != resultReg:
+                self.code += "\tlw " + register + ", " + str(-(self.currentScope.offsetFree + offsetSave)) +  "($sp)\n"
+                offsetSave += 4
+
+        for register in self.currentScope.floatRegisters:
+            if self.currentScope.floatRegisters[register]:
+                self.code += "\tl.s " + register + ", " + str(-(self.currentScope.offsetFree + offsetSave)) +  "($sp)\n"
+                offsetSave += 4
+
+        #RETURN THE RESULT REGISTER
+        return (resultReg, element.returnType)
+
+    def translateReturn(self, node):
+        returnRegister = 0
+        if node.returnExp:
+            functionScope = self.currentScope
+            offSetFunctionScope = 0
+            while not isinstance(functionScope, func_scope):
+                offSetFunctionScope += functionScope.parentScope.offsetFree
+                functionScope = functionScope.parentScope
+            
+            returnRegister = self.getRegFromRHS(node.returnExp, functionScope.returnType)             
+            if functionScope.returnType in ['int', 'char']:
+                self.code += '\tmove $v0, ' + returnRegister[0] + '\n'
+            else:
+                self.code += '\tmov.s $f1, ' + returnRegister[0] + '\n'
+            
+            returnAdress = self.currentScope.findElement('$ra', 'variable')
+            self.code += '\tlw $ra, ' + str(-self.currentScope.getElementOffSet(returnAdress)) + '($sp)\n'
+            self.code += '\taddi $sp, $sp, ' + str(offSetFunctionScope) + '\n'
+            self.code += '\tjr $ra\n'
 
 #HELPFUL FUNCTIONS
+
+    def addJump(self, label):
+        self.code += '\tj ' + label + '\n'
 
     def getComparisonResult(self, comparisonNode):
         leftOp = self.getRegFromRHS(comparisonNode.leftOp)
@@ -426,7 +536,6 @@ class MIPS():
                         
                 
         elif isinstance(node, VarNode):
-
             element = self.currentScope.findElement(node.value, 'variable')
             offset = self.currentScope.getElementOffSet(element)
 
@@ -464,13 +573,18 @@ class MIPS():
 
 
         elif isinstance(node , FuncCallNode):
-            """
-                - load parameters to the right place in memory
-                - call the function
-                - move $v0 in to a free register
-                - return the register
-            """
-            pass        
+            result = self.translateFuncCall(node)
+            if Target and result[1] != Target:
+                if Target == 'int':
+                    intRegister = self.convertRegister(result[0], 'int')
+                    return (intRegister, 'int')
+
+                elif Target == 'float':
+                    floatRegister = self.convertRegister(result[0], 'float')
+                    return (floatRegister, 'float')
+
+            else:
+                return result        
 
         elif node.value in operators:
             leftOp = self.getRegFromRHS(node.leftOp) #this reg will also be the result

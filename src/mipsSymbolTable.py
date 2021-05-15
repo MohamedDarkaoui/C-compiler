@@ -6,9 +6,10 @@ class variable:
         self.offset = offset
 
 class function:
-    def __init__(self):
-        self.name = None
-        self.arguments = None
+    def __init__(self, name , arguments, returnType):
+        self.name = name
+        self.arguments = arguments
+        self.returnType = returnType
 
 class scope:
     def __init__(self, parentScope = None):
@@ -116,5 +117,23 @@ class else_scope(scope):
         scope.__init__(self, parentScope)
 
 class func_scope(scope):
-    def __init__(self, parentScope):
+    def __init__(self, parentScope, arguments, returnType):
         scope.__init__(self, parentScope)
+        self.arguments = arguments
+        self.returnType = returnType
+
+    def getAllElements(self):
+        allElements = []
+        for x in self.symbolTable:
+            if not isinstance(x, scope):
+                allElements.append(x)
+
+        if self.parentScope is not None:
+            return self.arguments + allElements + self.parentScope.getAllElements()
+    
+    def getElementOffSet(self, element):
+        if element in self.symbolTable + self.arguments:
+            return element.offset
+        
+        else:
+            return self.parentScope.getElementOffSet(element) - self.parentScope.offsetFree

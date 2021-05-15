@@ -37,8 +37,6 @@ class scope:
 
     def isInScope(self, name, type):
         allElements = self.getAllElements()
-
-
         if type == 'variable':
             for element in allElements:
                 if element.name == name and isinstance(element, variable):

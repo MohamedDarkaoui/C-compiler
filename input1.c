@@ -1,13 +1,23 @@
-
 #include <stdio.h>
 
 int main() {
-   for (int i = 0; i < 10; i = i+1) {
-      for (int x = 0; x < 10; x = x+1) {
-         printf("%i", x*i);
-         printf("%s", "   ");
-      }
-      printf("%s", "\n");
-
-   }
+        printf("%d", 5+5);
+        printf("%s", "; ");
+        printf("%f", 4.5+5.5);
+        printf("%s", "; ");
+        printf("%d", 15-5);
+        printf("%s", "; ");
+        printf("%f", 10.5-0.5);
+        printf("%s", "; ");
+        printf("%d", 2*5);
+        printf("%s", "; ");
+        printf("%f", 20.0*0.5);
+        printf("%s", "; ");
+        printf("%d", 20/2);
+        printf("%s", "; ");
+        printf("%f", 5.0/0.5);
+        printf("%s", "; ");
+        return 1;
 }
+
+
