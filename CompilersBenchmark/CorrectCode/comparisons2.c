@@ -1,7 +1,9 @@
 #include <stdio.h>
 
+// DOESNT WORK
+
 // This should print 1 and 0 alternating 
-// This doesnt work in our compiler
+
 int main(){
         printf("%d; ", 1 < 2);
         printf("%d; ", 1 > 2);

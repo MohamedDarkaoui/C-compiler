@@ -25,8 +25,8 @@ def main(argv):
     #llvmgenerator = LLVM(ast)
     #llvmgenerator.toLLVM('llvm.ll')
 
-    mipsgenator = MIPS(ast)
-    mipsgenator.toMIPS('mips.asm')
+    mipsgenerator = MIPS(ast)
+    mipsgenerator.toMIPS('mips.asm')
 
 if __name__ == '__main__':
     main(sys.argv)

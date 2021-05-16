@@ -1,9 +1,11 @@
 
 class variable:
-    def __init__(self, name, type, offset):
+    def __init__(self, name, type, offset, isArray = False, size = None):
         self.name = name
         self.type = type
         self.offset = offset
+        self.isArray = isArray
+        self.size = size
 
 class function:
     def __init__(self, name , arguments, returnType):
@@ -117,10 +119,11 @@ class else_scope(scope):
         scope.__init__(self, parentScope)
 
 class func_scope(scope):
-    def __init__(self, parentScope, arguments, returnType):
+    def __init__(self, parentScope, arguments, returnType, mainScope = False):
         scope.__init__(self, parentScope)
         self.arguments = arguments
         self.returnType = returnType
+        self.mainScope = mainScope
 
     def getAllElements(self):
         allElements = []

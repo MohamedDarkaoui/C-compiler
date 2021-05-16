@@ -1,77 +1,41 @@
 .data
-	float0: .float 10.0
-	string0: .asciiz "; "
-	float1: .float 10.0
-	string1: .asciiz "; "
-	float2: .float 10.0
-	string2: .asciiz "; "
-	float3: .float 10.0
-	string3: .asciiz "; "
-	float4: .float 10.0
-	string4: .asciiz "; "
-	float5: .float 10.0
-	string5: .asciiz "; "
-	float6: .float 10.0
-	string6: .asciiz "; "
-	float7: .float 10.0
-	string7: .asciiz "; "
+	$string0: .asciiz "; "
 .text
 
 
-main:
-	l.s $f9, float0
+
+
+	addi $sp, $sp, 0
+	j $funcmain
+
+$funcmain:
+	li $s6, 0
+	sw $s6, 0($sp)
+	addi $sp, $sp, -4
+
+label0:
+	lw $s6, 4($sp)
+	li $s7, 5
+	slt $s6, $s6, $s7
+	beqz $s6, label1
+	lw $s6, 4($sp)
+	li $s7, 1
+	add $s6, $s6, $s7
+	sw $s6, 4($sp)
+	lw $s6, 4($sp)
+	mtc1 $s6, $f9
+	cvt.s.w $f9, $f9
 	li $v0, 2
 	mov.s $f12, $f9
 	syscall
 	li $v0, 4
-	la $a0, string0
+	la $a0, $string0
 	syscall
-	l.s $f9, float1
-	li $v0, 2
-	mov.s $f12, $f9
+	j label0
+
+label1:
+	addi $sp, $sp, 4
+	li $v0, 10
 	syscall
-	li $v0, 4
-	la $a0, string1
-	syscall
-	l.s $f9, float2
-	li $v0, 2
-	mov.s $f12, $f9
-	syscall
-	li $v0, 4
-	la $a0, string2
-	syscall
-	l.s $f9, float3
-	li $v0, 2
-	mov.s $f12, $f9
-	syscall
-	li $v0, 4
-	la $a0, string3
-	syscall
-	l.s $f9, float4
-	li $v0, 2
-	mov.s $f12, $f9
-	syscall
-	li $v0, 4
-	la $a0, string4
-	syscall
-	l.s $f9, float5
-	li $v0, 2
-	mov.s $f12, $f9
-	syscall
-	li $v0, 4
-	la $a0, string5
-	syscall
-	l.s $f9, float6
-	li $v0, 2
-	mov.s $f12, $f9
-	syscall
-	li $v0, 4
-	la $a0, string6
-	syscall
-	l.s $f9, float7
-	li $v0, 2
-	mov.s $f12, $f9
-	syscall
-	li $v0, 4
-	la $a0, string7
+	li $v0, 10
 	syscall
