@@ -1,16 +1,14 @@
 #include <stdio.h>
 
-// Should print the numbers 1 - 5
-
+int fibonacci(int x) {
+	if (x < 2) {
+		return x;
+	}
+	return fibonacci(x-1) + fibonacci(x-2);
+}
 
 int main(){
-	int i = 0;
-	while (i < 5){
-		i = i+1;
-		printf("%d", i);
-		printf("%s", "; ");
-
-	}
-	return 1;
+	printf("%i",fibonacci(5));
+	return 0;
 }
 

@@ -1,10 +1,10 @@
 # C compiler
 ---
 
-
+Compiler for a subset of C into LLVM/MIPS
 ### Implemented features:
 ---
-### project 1:
+### Project 1:
 ---
 
 ##### Mandatory
@@ -23,7 +23,7 @@
 * [ ]  Logical operators &&, ||, and !.
 * [x] Constant Folding
 
-### project 2:
+### Project 2:
 ---
 ##### Mandatory
 * [x] Types (int, char, float, pointers).
@@ -37,14 +37,14 @@
 * [ ] Identifier Operations
 * [x] Implicit conversions
 
-### project 3:
+### Project 3:
 ---
 ##### Mandatory
 * [x] Support for single line comments and multiline comments.
 * [x] Printf.
 * [x] LLVM code generation &nbsp;&nbsp;
 
-### project 4:
+### Project 4:
 ---
 ##### Mandatory
 * [x] reserved words (if, else, while, for, break, continue)
@@ -53,13 +53,13 @@
 ##### Optional
 * [ ] reserved words (switch, case, default)
 
-### project 5:
+### Project 5:
 ---
 ##### Mandatory
-* [x] reserved words (reurn, void)
+* [x] reserved words (return, void)
 * [x] scopes (functions)
 * [x] local and global variables
-* [x] functios (only definition)
+* [x] functions (only definition)
 * [x] unreachable code and dead code
 
 ##### Optional
@@ -74,21 +74,28 @@
 ##### Optional
 * [ ] multy dimensional and dynamic arrays
 
-#### how to run:
+#### How to run:
 ---
 To create the GrammarLexer, GrammarParser, GrammarListener,... This uses Python2.
-```
+```bash
 ./build.sh
 ```
 then run
-``` 
-python main.py input1.c
+
+LLVM:
+``` bash
+python llvm main.py input1.c llvm.ll
+```
+MIPS:
+``` bash
+python mips main.py input1.c mips.asm
 ```
 If input.c code is valid This should create:
-* A png file in the root directory named treeGraph.png that contains the dot visualization of our abstract syntax tree.
-* A ll file that contins the generated llvm code. 
+* A png file in the root directory named treeGraph.png that contains the dot visualization of our Abstract Syntax Tree.
+* A llvm/asm  file that contains the generated llvm/mips code. 
 
 Otherwise an error should be thrown (syntax or semantics)
+
 ### Tests
 ---
 The tests are written in the directory testInputs.
@@ -99,8 +106,8 @@ The tests are written in the directory testInputs.
 * input3.c
     * assignments (+ operations with variables)
 
-All these tests are made to compare the generated llvm code output with the output we expected it to generate.
-to run the tests:
-```
+All these tests are made to compare the generated llvm/mips output with the expected output.
+To run the tests:
+```bash
 ./test.sh
 ```

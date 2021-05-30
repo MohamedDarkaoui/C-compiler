@@ -8,7 +8,7 @@ from src.llvm import LLVM
 from src.mips import MIPS
 
 def main(argv):
-    input_stream = FileStream(argv[1])
+    input_stream = FileStream(argv[2])
     lexer = GrammarLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser = GrammarParser(stream)
@@ -22,11 +22,13 @@ def main(argv):
     ast = astcreator.generateAST()
     ast.dot("treeGraph")
 
-    #llvmgenerator = LLVM(ast)
-    #llvmgenerator.toLLVM('llvm.ll')
+    if argv[1] in ['llvm', 'LLVM']:
+        llvmgenerator = LLVM(ast)
+        llvmgenerator.toLLVM(argv[3])
 
-    mipsgenerator = MIPS(ast)
-    mipsgenerator.toMIPS('mips.asm')
+    elif argv[1] in ['mips', 'MIPS']:
+        mipsgenerator = MIPS(ast)
+        mipsgenerator.toMIPS(argv[3])
 
 if __name__ == '__main__':
     main(sys.argv)
