@@ -98,7 +98,7 @@ Otherwise an error should be thrown (syntax or semantics)
 
 ### Tests
 ---
-The tests are written in the directory testInputs.
+The test inputs are written in the directory testInputs.
 * input1.c
     * declarations
 * input2.c
